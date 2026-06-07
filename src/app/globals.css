@@ -172,17 +172,6 @@ html.theme-transition::after {
     box-shadow 0.28s ease;
 }
 
-.refresh-btn:hover:not(:disabled):not(.refresh-btn-loading) .refresh-btn-shell,
-.refresh-btn:focus-visible:not(:disabled):not(.refresh-btn-loading) .refresh-btn-shell {
-  gap: 0.5rem;
-  padding-right: 0.875rem;
-  border-color: color-mix(in srgb, var(--ems-primary) 28%, var(--ems-border));
-  background: color-mix(in srgb, var(--ems-surface) 92%, var(--ems-primary-light));
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 55%, transparent),
-    0 4px 14px color-mix(in srgb, var(--ems-primary) 14%, transparent);
-}
-
 .refresh-btn-label {
   max-width: 0;
   opacity: 0;
@@ -197,10 +186,39 @@ html.theme-transition::after {
     opacity 0.22s ease;
 }
 
-.refresh-btn:hover:not(:disabled):not(.refresh-btn-loading) .refresh-btn-label,
-.refresh-btn:focus-visible:not(:disabled):not(.refresh-btn-loading) .refresh-btn-label {
-  max-width: 4.5rem;
-  opacity: 1;
+/* Mobile / tablet: icon only — no expanding "Refresh" label */
+@media (max-width: 1023px) {
+  .refresh-btn-label {
+    display: none;
+  }
+}
+
+/* Laptop+ with mouse: expand "Refresh" on hover */
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  .refresh-btn:hover:not(:disabled):not(.refresh-btn-loading) .refresh-btn-shell,
+  .refresh-btn:focus-visible:not(:disabled):not(.refresh-btn-loading) .refresh-btn-shell {
+    gap: 0.5rem;
+    padding-right: 0.875rem;
+    border-color: color-mix(in srgb, var(--ems-primary) 28%, var(--ems-border));
+    background: color-mix(in srgb, var(--ems-surface) 92%, var(--ems-primary-light));
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, white 55%, transparent),
+      0 4px 14px color-mix(in srgb, var(--ems-primary) 14%, transparent);
+  }
+
+  .refresh-btn:hover:not(:disabled):not(.refresh-btn-loading) .refresh-btn-label,
+  .refresh-btn:focus-visible:not(:disabled):not(.refresh-btn-loading) .refresh-btn-label {
+    max-width: 4.5rem;
+    opacity: 1;
+  }
+
+  [data-theme="dark"] .refresh-btn:hover:not(:disabled):not(.refresh-btn-loading) .refresh-btn-shell,
+  [data-theme="dark"] .refresh-btn:focus-visible:not(:disabled):not(.refresh-btn-loading) .refresh-btn-shell {
+    background: color-mix(in srgb, var(--ems-neutral-100) 88%, var(--ems-primary-light));
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, white 8%, transparent),
+      0 6px 18px rgba(0, 0, 0, 0.35);
+  }
 }
 
 .refresh-btn-glow {
@@ -335,14 +353,6 @@ html.theme-transition::after {
   50% { opacity: 0.75; transform: scale(1.06); }
 }
 
-[data-theme="dark"] .refresh-btn:hover:not(:disabled):not(.refresh-btn-loading) .refresh-btn-shell,
-[data-theme="dark"] .refresh-btn:focus-visible:not(:disabled):not(.refresh-btn-loading) .refresh-btn-shell {
-  background: color-mix(in srgb, var(--ems-neutral-100) 88%, var(--ems-primary-light));
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 8%, transparent),
-    0 6px 18px rgba(0, 0, 0, 0.35);
-}
-
 [data-theme="dark"] .refresh-btn-label {
   color: var(--ems-primary);
 }
@@ -379,7 +389,9 @@ html.theme-transition::after {
   .refresh-btn:hover:not(:disabled) .refresh-btn-icon {
     transform: none;
   }
+}
 
+@media (prefers-reduced-motion: reduce) and (min-width: 1024px) and (hover: hover) and (pointer: fine) {
   .refresh-btn-label {
     max-width: 4.5rem;
     opacity: 1;
