@@ -16,11 +16,11 @@
 export const pagesConfig = {
   dashboard: true,
   employees: true,
-  payrolls: true,
-  salarySlips: true,
-  taxes: true,
-  gpFund: true,
-  reports: true,
+  payrolls: false,
+  salarySlips: false,
+  taxes: false,
+  gpFund: false,
+  reports: false,
   settings: true,
 } as const;
 
