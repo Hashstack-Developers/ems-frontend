@@ -3,30 +3,37 @@
 import { useCallback, useEffect, useState } from 'react';
 import api, { getErrorMessage } from '@/lib/api';
 import { formatCurrency, formatDeductionRate, MONTHS } from '@/lib/format';
+import { hasPermission } from '@/lib/permissions';
 import { useToast } from '@/contexts/ToastContext';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import {
+  DataTableCard,
   EmptyState,
   PageContainer,
   PageHeader,
   ScrollableList,
   StatBanner,
   StatBannerItem,
+  Th,
+  Td,
 } from '@/components/layout/PageShell';
 import { PayrollListSkeleton, StatBannerSkeleton } from '@/components/ui/Skeletons';
-import type { ApiResponse, Payroll } from '@/types';
+import type { ApiResponse, Payroll, PayrollGenerationResult, PayrollGenerationStatus } from '@/types';
 
 export default function PayrollsPage() {
   const toast = useToast();
+
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [payrolls, setPayrolls] = useState<Payroll[]>([]);
+  const [generationStatus, setGenerationStatus] = useState<PayrollGenerationStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [refetching, setRefetching] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [generatingEmployeeId, setGeneratingEmployeeId] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Payroll | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -35,8 +42,14 @@ export default function PayrollsPage() {
     if (isRefetch) setRefetching(true);
     else setLoading(true);
     try {
-      const { data } = await api.get<ApiResponse<Payroll[]>>('/payrolls', { params: { month, year } });
-      setPayrolls(data.data);
+      const [payrollsRes, statusRes] = await Promise.all([
+        api.get<ApiResponse<Payroll[]>>('/payrolls', { params: { month, year } }),
+        api.get<ApiResponse<PayrollGenerationStatus[]>>('/payrolls/generation-status', {
+          params: { month, year },
+        }),
+      ]);
+      setPayrolls(payrollsRes.data.data);
+      setGenerationStatus(statusRes.data.data);
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -47,16 +60,44 @@ export default function PayrollsPage() {
 
   useEffect(() => { fetchPayrolls(); }, [fetchPayrolls]);
 
+  const showGenerationToast = (result: PayrollGenerationResult, message?: string) => {
+    if (result.summary.createdCount > 0) {
+      toast.success(message ?? `Generated ${result.summary.createdCount} payroll(s)`);
+      return;
+    }
+    toast.info(message ?? 'No new payroll records were created');
+  };
+
   const handleGenerate = async () => {
     setGenerating(true);
     try {
-      const { data } = await api.post<ApiResponse<Payroll[]>>('/payrolls/generate', { month, year });
-      toast.success(data.message ?? `Generated ${data.data.length} payroll(s)`);
+      const { data } = await api.post<ApiResponse<PayrollGenerationResult>>(
+        '/payrolls/generate',
+        { month, year },
+      );
+      showGenerationToast(data.data, data.message);
       fetchPayrolls({ refetch: true });
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleGenerateForEmployee = async (item: PayrollGenerationStatus) => {
+    if (!item.canGenerate) return;
+    setGeneratingEmployeeId(item.employeeId);
+    try {
+      const { data } = await api.post<ApiResponse<PayrollGenerationResult>>(
+        '/payrolls/generate',
+        { month, year, employeeId: item.employeeId },
+      );
+      showGenerationToast(data.data, data.message);
+      fetchPayrolls({ refetch: true });
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setGeneratingEmployeeId(null);
     }
   };
 
@@ -77,6 +118,8 @@ export default function PayrollsPage() {
 
   const totalGross = payrolls.reduce((s, p) => s + Number(p.grossSalary), 0);
   const totalNet = payrolls.reduce((s, p) => s + Number(p.netSalary), 0);
+  const missingCount = generationStatus.filter((item) => item.canGenerate).length;
+  const coveredCount = generationStatus.length - missingCount;
 
   return (
     <PageContainer fill>
@@ -99,7 +142,21 @@ export default function PayrollsPage() {
               onChange={(e) => setYear(parseInt(e.target.value, 10))}
               options={[year - 1, year, year + 1].map((y) => ({ value: y, label: String(y) }))}
             />
-            <Button onClick={handleGenerate} loading={generating}>Generate Payroll</Button>
+            {generationStatus.length > 0 && (
+              <div className="pb-1">
+                <p className="text-xs font-medium uppercase tracking-wider text-muted">Coverage</p>
+                <p className="text-xl font-bold text-primary-dark">
+                  {coveredCount} / {generationStatus.length}
+                </p>
+              </div>
+            )}
+            {hasPermission('payrolls.generate') && (
+              <Button onClick={handleGenerate} loading={generating}>
+                {missingCount > 0 && coveredCount > 0
+                  ? `Generate Missing (${missingCount})`
+                  : 'Generate Payroll'}
+              </Button>
+            )}
           </>
         }
       />
@@ -111,7 +168,53 @@ export default function PayrollsPage() {
           <StatBannerItem label="Records" value={payrolls.length} />
           <StatBannerItem label="Total Gross" value={formatCurrency(totalGross)} valueClassName="text-primary-dark" />
           <StatBannerItem label="Total Net" value={formatCurrency(totalNet)} valueClassName="text-success" />
+          <StatBannerItem
+            label="Missing"
+            value={missingCount}
+            valueClassName={missingCount > 0 ? 'text-warning' : 'text-success'}
+          />
         </StatBanner>
+      )}
+
+      {!loading && !refetching && missingCount > 0 && (
+        <DataTableCard
+          fill={false}
+          className="mb-4 shrink-0"
+          header={
+            <>
+              <Th className="min-w-[180px]">Employee</Th>
+              <Th className="min-w-[140px]">Department</Th>
+              <Th className="min-w-[220px]">Status</Th>
+              {hasPermission('payrolls.generate') && <Th className="w-[160px]">Actions</Th>}
+            </>
+          }
+        >
+          {generationStatus
+            .filter((item) => item.canGenerate)
+            .map((item) => (
+              <tr key={item.employeeId}>
+                <Td>
+                  <p className="font-medium">{item.fullName}</p>
+                  <p className="font-mono text-xs text-muted-light">{item.employeeCode}</p>
+                </Td>
+                <Td>{item.department}</Td>
+                <Td>
+                  <span className="text-xs text-warning">{item.message}</span>
+                </Td>
+                {hasPermission('payrolls.generate') && (
+                  <Td>
+                    <Button
+                      size="sm"
+                      loading={generatingEmployeeId === item.employeeId}
+                      onClick={() => handleGenerateForEmployee(item)}
+                    >
+                      Generate
+                    </Button>
+                  </Td>
+                )}
+              </tr>
+            ))}
+        </DataTableCard>
       )}
 
       <div className="flex min-h-0 flex-1 flex-col">
@@ -121,7 +224,11 @@ export default function PayrollsPage() {
           <EmptyState
             icon="💰"
             title={`No payroll for ${MONTHS[month - 1]} ${year}`}
-            description='Click "Generate Payroll" to create records for all active employees.'
+            description={
+              missingCount > 0
+                ? `Generate payroll for ${missingCount} employee(s) using the actions above.`
+                : 'Click "Generate Payroll" to create records for all active employees.'
+            }
           />
         ) : (
           <ScrollableList className="space-y-4">
@@ -142,7 +249,9 @@ export default function PayrollsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="rounded-full bg-primary-soft px-2 py-0.5 text-xs font-medium text-primary-hover">{p.status}</span>
-                    <Button size="sm" variant="danger" onClick={() => setDeleteTarget(p)}>Delete</Button>
+                    {hasPermission('payrolls.delete') && (
+                      <Button size="sm" variant="danger" onClick={() => setDeleteTarget(p)}>Delete</Button>
+                    )}
                   </div>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -178,7 +287,7 @@ export default function PayrollsPage() {
         title="Delete Payroll"
         message={
           deleteTarget
-            ? `Delete payroll record for ${deleteTarget.employee?.firstName ?? ''} ${deleteTarget.employee?.lastName ?? ''}? This action cannot be undone.`
+            ? `Delete payroll record for ${deleteTarget.employee?.firstName ?? ''} ${deleteTarget.employee?.lastName ?? ''}? This cannot be undone.`
             : ''
         }
         loading={deleting}

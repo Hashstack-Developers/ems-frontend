@@ -16,11 +16,14 @@ export function SettingsActionsProvider({ children }: { children: ReactNode }) {
   const [refetchHandler, setRefetchHandler] = useState<(() => void) | null>(null);
 
   const registerRefetch = useCallback((handler: (() => void) | null) => {
-    setRefetchHandler(handler);
+    // Store function values via updater form — React treats bare functions as updaters.
+    setRefetchHandler(() => handler);
   }, []);
 
   const triggerRefetch = useCallback(() => {
-    refetchHandler?.();
+    if (typeof refetchHandler === 'function') {
+      refetchHandler();
+    }
   }, [refetchHandler]);
 
   const value = useMemo(

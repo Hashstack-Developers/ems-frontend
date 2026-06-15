@@ -1,8 +1,9 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import api, { getErrorMessage } from '@/lib/api';
-import { getUser } from '@/lib/auth';
+import { getUser, isSuperRole } from '@/lib/auth';
+import { NO_CHANGES_MESSAGE } from '@/lib/form-changes';
 import { useToast } from '@/contexts/ToastContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -19,6 +20,11 @@ export default function AccountSettingsPage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const passwordDirty = useMemo(
+    () => currentPassword.length > 0 || newPassword.length > 0 || confirmPassword.length > 0,
+    [currentPassword, newPassword, confirmPassword],
+  );
 
   const fetchProfile = useCallback(async (options?: { refetch?: boolean }) => {
     const isRefetch = options?.refetch ?? false;
@@ -50,6 +56,11 @@ export default function AccountSettingsPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    if (!passwordDirty) {
+      toast.info(NO_CHANGES_MESSAGE);
+      return;
+    }
 
     if (newPassword !== confirmPassword) {
       toast.error('New passwords do not match');
@@ -112,6 +123,7 @@ export default function AccountSettingsPage() {
         </dl>
       </div>
 
+      {isSuperRole() && (
       <div className="card-modern p-5 sm:p-6">
         <h2 className="text-lg font-semibold text-foreground">Change Password</h2>
         <p className="mt-1 text-sm text-muted">
@@ -146,12 +158,13 @@ export default function AccountSettingsPage() {
             autoComplete="new-password"
           />
           <div className="pt-2">
-            <Button type="submit" loading={saving}>
+            <Button type="submit" loading={saving} disabled={!passwordDirty}>
               Update Password
             </Button>
           </div>
         </form>
       </div>
+      )}
     </div>
   );
 }

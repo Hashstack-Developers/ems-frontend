@@ -3,22 +3,26 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { PageContainer, PageHeader } from '@/components/layout/PageShell';
+import { getPageHref } from '@/lib/pages';
 import { SettingsActionsProvider, useSettingsActions } from './SettingsActionsContext';
 
 const settingsLinks = [
-  { href: '/settings/account', label: 'Account', icon: '👤' },
+  { href: '/settings/account', label: 'Account', icon: '👤', pageKey: 'settings' },
+  { href: '/settings/users', label: 'Users', icon: '🛡️', pageKey: 'users' },
+  { href: '/settings/roles', label: 'Roles', icon: '🔐', pageKey: 'roles' },
 ];
 
 function SettingsLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { triggerRefetch, refetching } = useSettingsActions();
   const showRefetch = pathname === '/settings/account';
+  const visibleLinks = settingsLinks.filter((link) => getPageHref(link.pageKey));
 
   return (
     <PageContainer>
       <PageHeader
         title="Settings"
-        subtitle="Manage your account and security"
+        subtitle="Manage your account, users, and access control"
         onRefetch={showRefetch ? triggerRefetch : undefined}
         refetching={refetching}
       />
@@ -28,8 +32,8 @@ function SettingsLayoutContent({ children }: { children: React.ReactNode }) {
           <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-light">
             Menu
           </p>
-          {settingsLinks.map((link) => {
-            const active = pathname === link.href;
+          {visibleLinks.map((link) => {
+            const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
             return (
               <Link
                 key={link.href}
@@ -49,7 +53,7 @@ function SettingsLayoutContent({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className="min-w-0 flex-1">{children}</div>
+        <div className="min-w-0 flex-1 overflow-x-auto">{children}</div>
       </div>
     </PageContainer>
   );

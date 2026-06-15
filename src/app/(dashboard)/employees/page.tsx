@@ -1,8 +1,10 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import api, { getErrorMessage } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/format';
+import { getChangedFields, hasFieldChanges, NO_CHANGES_MESSAGE, optionalStringsEqual } from '@/lib/form-changes';
+import { hasAnyPermission, hasPermission } from '@/lib/permissions';
 import { useToast } from '@/contexts/ToastContext';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Button } from '@/components/ui/Button';
@@ -28,6 +30,7 @@ const emptyForm = {
 
 export default function EmployeesPage() {
   const toast = useToast();
+
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [refetching, setRefetching] = useState(false);
@@ -35,6 +38,7 @@ export default function EmployeesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [originalForm, setOriginalForm] = useState(emptyForm);
   const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -58,12 +62,13 @@ export default function EmployeesPage() {
   const openCreate = () => {
     setEditing(null);
     setForm(emptyForm);
+    setOriginalForm(emptyForm);
     setModalOpen(true);
   };
 
   const openEdit = (emp: Employee) => {
     setEditing(emp);
-    setForm({
+    const nextForm = {
       employeeCode: emp.employeeCode,
       firstName: emp.firstName,
       lastName: emp.lastName,
@@ -74,26 +79,69 @@ export default function EmployeesPage() {
       basicSalary: String(emp.basicSalary),
       joinDate: emp.joinDate,
       status: emp.status,
-    });
+    };
+    setForm(nextForm);
+    setOriginalForm(nextForm);
     setModalOpen(true);
   };
 
+  const editFields = [
+    'employeeCode',
+    'firstName',
+    'lastName',
+    'email',
+    'phone',
+    'department',
+    'designation',
+    'basicSalary',
+    'joinDate',
+    'status',
+  ] as const;
+
+  const fieldComparator = (
+    key: (typeof editFields)[number],
+    current: unknown,
+    original: unknown,
+  ) => {
+    if (key === 'phone') {
+      return optionalStringsEqual(String(current), String(original));
+    }
+    if (key === 'basicSalary') {
+      return Number(current) === Number(original);
+    }
+    return current === original;
+  };
+
+  const isEditDirty = useMemo(() => {
+    if (!editing) {
+      return true;
+    }
+    return hasFieldChanges(form, originalForm, editFields, { isEqual: fieldComparator });
+  }, [editing, form, originalForm]);
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setSaving(true);
 
-    const payload = {
-      ...form,
-      basicSalary: parseFloat(form.basicSalary),
-      phone: form.phone || undefined,
-    };
+    if (editing && !isEditDirty) {
+      toast.info(NO_CHANGES_MESSAGE);
+      return;
+    }
+
+    setSaving(true);
+    const buildPayload = (source: typeof form) => ({
+      ...source,
+      basicSalary: parseFloat(source.basicSalary),
+      phone: source.phone || undefined,
+    });
 
     try {
       if (editing) {
+        const changes = getChangedFields(form, originalForm, editFields, { isEqual: fieldComparator });
+        const payload = buildPayload({ ...originalForm, ...changes });
         await api.patch(`/employees/${editing.id}`, payload);
         toast.success('Employee updated successfully');
       } else {
-        await api.post('/employees', payload);
+        await api.post('/employees', buildPayload(form));
         toast.success('Employee created successfully');
       }
       setModalOpen(false);
@@ -120,6 +168,9 @@ export default function EmployeesPage() {
     }
   };
 
+  const showActionsColumn = hasAnyPermission('employees.update', 'employees.delete');
+  const columnCount = showActionsColumn ? 7 : 6;
+
   return (
     <PageContainer fill>
       <PageHeader
@@ -127,7 +178,7 @@ export default function EmployeesPage() {
         subtitle="Manage employee records"
         onRefetch={() => fetchEmployees({ refetch: true })}
         refetching={refetching}
-        actions={<Button onClick={openCreate}>+ Add Employee</Button>}
+        actions={hasPermission('employees.create') ? <Button onClick={openCreate}>+ Add Employee</Button> : undefined}
       />
 
       <DataTableCard
@@ -139,14 +190,14 @@ export default function EmployeesPage() {
             <Th className="w-[120px]">Salary</Th>
             <Th className="w-[90px]">Status</Th>
             <Th className="w-[110px]">Joined</Th>
-            <Th className="w-[160px]">Actions</Th>
+            {showActionsColumn && <Th className="w-[160px]">Actions</Th>}
           </>
         }
       >
         {loading || refetching ? (
-          <TableBodySkeleton rows={8} cols={7} />
+          <TableBodySkeleton rows={8} cols={columnCount} />
         ) : employees.length === 0 ? (
-          <tr><td colSpan={7} className="py-8 text-center text-muted-light">No employees found</td></tr>
+          <tr><td colSpan={columnCount} className="py-8 text-center text-muted-light">No employees found</td></tr>
         ) : (
           employees.map((emp) => (
             <tr key={emp.id}>
@@ -160,43 +211,51 @@ export default function EmployeesPage() {
                 </span>
               </Td>
               <Td>{formatDate(emp.joinDate)}</Td>
+              {showActionsColumn && (
               <Td>
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="secondary" onClick={() => openEdit(emp)}>Edit</Button>
-                  <Button size="sm" variant="danger" onClick={() => setDeleteTarget(emp)}>Delete</Button>
+                  {hasPermission('employees.update') && (
+                    <Button size="sm" variant="secondary" onClick={() => openEdit(emp)}>Edit</Button>
+                  )}
+                  {hasPermission('employees.delete') && (
+                    <Button size="sm" variant="danger" onClick={() => setDeleteTarget(emp)}>Delete</Button>
+                  )}
                 </div>
               </Td>
+              )}
             </tr>
           ))
         )}
       </DataTableCard>
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Employee' : 'Add Employee'}>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <Input label="Employee Code" value={form.employeeCode} onChange={(e) => setForm({ ...form, employeeCode: e.target.value })} required />
-            <Input label="Join Date" type="date" value={form.joinDate} onChange={(e) => setForm({ ...form, joinDate: e.target.value })} required />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Input label="First Name" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} required />
-            <Input label="Last Name" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} required />
-          </div>
-          <Input label="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
-          <Input label="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-          <div className="grid grid-cols-2 gap-3">
-            <Input label="Department" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} required />
-            <Input label="Designation" value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} required />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Input label="Basic Salary" type="number" min="0" step="0.01" value={form.basicSalary} onChange={(e) => setForm({ ...form, basicSalary: e.target.value })} required />
-            <Select label="Status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as 'active' | 'inactive' })} options={[{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]} />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button type="submit" loading={saving}>{editing ? 'Update' : 'Create'}</Button>
-          </div>
-        </form>
-      </Modal>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <Input label="Employee Code" value={form.employeeCode} onChange={(e) => setForm({ ...form, employeeCode: e.target.value })} required />
+              <Input label="Join Date" type="date" value={form.joinDate} onChange={(e) => setForm({ ...form, joinDate: e.target.value })} required />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Input label="First Name" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} required />
+              <Input label="Last Name" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} required />
+            </div>
+            <Input label="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+            <Input label="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+            <div className="grid grid-cols-2 gap-3">
+              <Input label="Department" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} required />
+              <Input label="Designation" value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} required />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Input label="Basic Salary" type="number" min="0" step="0.01" value={form.basicSalary} onChange={(e) => setForm({ ...form, basicSalary: e.target.value })} required />
+              <Select label="Status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as 'active' | 'inactive' })} options={[{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]} />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
+              <Button type="submit" loading={saving} disabled={!!editing && !isEditDirty}>
+                {editing ? 'Update' : 'Create'}
+              </Button>
+            </div>
+          </form>
+        </Modal>
 
       <ConfirmModal
         open={!!deleteTarget}

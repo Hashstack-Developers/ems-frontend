@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { getToken } from '@/lib/auth';
 import { MONTHS } from '@/lib/format';
+import { hasPermission } from '@/lib/permissions';
 import { useToast } from '@/contexts/ToastContext';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
@@ -93,14 +94,16 @@ export default function ReportsPage() {
             </div>
           )}
 
-          <div className="flex gap-3 pt-2">
-            <Button onClick={() => downloadReport('csv')} loading={downloading === 'csv'} className="flex-1">
-              Download CSV
-            </Button>
-            <Button onClick={() => downloadReport('pdf')} loading={downloading === 'pdf'} variant="secondary" className="flex-1">
-              Download PDF
-            </Button>
-          </div>
+          {hasPermission('reports.export') && (
+            <div className="flex gap-3 pt-2">
+              <Button onClick={() => downloadReport('csv')} loading={downloading === 'csv'} className="flex-1">
+                Download CSV
+              </Button>
+              <Button onClick={() => downloadReport('pdf')} loading={downloading === 'pdf'} variant="secondary" className="flex-1">
+                Download PDF
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 

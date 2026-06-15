@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { getDefaultRoute, getPageKeyFromPath, isPageEnabled } from '@/lib/pages';
+import { getDefaultRoute, getPageKeyFromPath, userHasPageAccess } from '@/lib/pages';
 import { SkeletonBar } from '@/components/ui/Skeletons';
 
 export function PageGuard({ children }: { children: React.ReactNode }) {
@@ -12,7 +12,7 @@ export function PageGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const key = getPageKeyFromPath(pathname);
-    if (key && !isPageEnabled(key)) {
+    if (key && !userHasPageAccess(key)) {
       setAllowed(false);
       router.replace(getDefaultRoute());
       return;
@@ -21,7 +21,7 @@ export function PageGuard({ children }: { children: React.ReactNode }) {
   }, [pathname, router]);
 
   const key = getPageKeyFromPath(pathname);
-  if (key && !isPageEnabled(key) && !allowed) {
+  if (key && !userHasPageAccess(key) && !allowed) {
     return (
       <div className="flex min-h-0 flex-1 flex-col gap-4 animate-fade-in">
         <SkeletonBar className="h-8 w-48" />

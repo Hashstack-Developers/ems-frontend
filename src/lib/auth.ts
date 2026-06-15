@@ -31,3 +31,7 @@ export function clearAuth(): void {
 export function isAuthenticated(): boolean {
   return !!getToken();
 }
+
+export function isSuperRole(): boolean {
+  return getUser()?.role === 'super';
+}

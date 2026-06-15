@@ -1,0 +1,70 @@
+export const MODULE_NAV_PERMISSION: Record<string, string> = {
+  dashboard: 'dashboard.view',
+  employees: 'employees.view',
+  payrolls: 'payrolls.view',
+  salarySlips: 'salarySlips.view',
+  taxes: 'taxes.view',
+  gpFund: 'gpFund.view',
+  reports: 'reports.view',
+  settings: 'settings.view',
+  users: 'users.view',
+  roles: 'roles.view',
+};
+
+export const PERMISSIONS = {
+  DASHBOARD_VIEW: 'dashboard.view',
+  EMPLOYEES_VIEW: 'employees.view',
+  EMPLOYEES_CREATE: 'employees.create',
+  EMPLOYEES_UPDATE: 'employees.update',
+  EMPLOYEES_DELETE: 'employees.delete',
+  PAYROLLS_VIEW: 'payrolls.view',
+  PAYROLLS_GENERATE: 'payrolls.generate',
+  PAYROLLS_DELETE: 'payrolls.delete',
+  SALARY_SLIPS_VIEW: 'salarySlips.view',
+  SALARY_SLIPS_GENERATE: 'salarySlips.generate',
+  SALARY_SLIPS_EXPORT: 'salarySlips.export',
+  TAXES_VIEW: 'taxes.view',
+  TAXES_CREATE: 'taxes.create',
+  TAXES_UPDATE: 'taxes.update',
+  TAXES_DELETE: 'taxes.delete',
+  GP_FUND_VIEW: 'gpFund.view',
+  GP_FUND_CREATE: 'gpFund.create',
+  GP_FUND_UPDATE: 'gpFund.update',
+  GP_FUND_DELETE: 'gpFund.delete',
+  REPORTS_VIEW: 'reports.view',
+  REPORTS_EXPORT: 'reports.export',
+  SETTINGS_VIEW: 'settings.view',
+  SETTINGS_UPDATE: 'settings.update',
+  USERS_VIEW: 'users.view',
+  USERS_CREATE: 'users.create',
+  USERS_UPDATE: 'users.update',
+  USERS_DEACTIVATE: 'users.deactivate',
+  USERS_DELETE: 'users.delete',
+  ROLES_VIEW: 'roles.view',
+  ROLES_UPDATE: 'roles.update',
+} as const;
+
+export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
+
+export const MODULE_LABELS: Record<string, string> = {
+  dashboard: 'Dashboard',
+  employees: 'Employees',
+  payrolls: 'Payrolls',
+  salarySlips: 'Salary Slips',
+  taxes: 'Taxes',
+  gpFund: 'GP Fund',
+  reports: 'Reports',
+  settings: 'Settings',
+  users: 'Users',
+  roles: 'Roles',
+};
+
+export const ACTION_LABELS: Record<string, string> = {
+  view: 'View',
+  create: 'Create',
+  update: 'Update',
+  delete: 'Delete',
+  export: 'Export',
+  generate: 'Generate',
+  deactivate: 'Deactivate',
+};

@@ -1,8 +1,10 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import api, { getErrorMessage } from '@/lib/api';
 import { formatCurrency } from '@/lib/format';
+import { getChangedFields, hasFieldChanges, NO_CHANGES_MESSAGE, optionalStringsEqual } from '@/lib/form-changes';
+import { hasAnyPermission, hasPermission } from '@/lib/permissions';
 import { useToast } from '@/contexts/ToastContext';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Button } from '@/components/ui/Button';
@@ -15,6 +17,7 @@ import type { ApiResponse, SubTax, TaxSlab } from '@/types';
 
 export default function TaxesPage() {
   const toast = useToast();
+
   const [slabs, setSlabs] = useState<TaxSlab[]>([]);
   const [loading, setLoading] = useState(true);
   const [refetching, setRefetching] = useState(false);
@@ -32,7 +35,9 @@ export default function TaxesPage() {
   const [deleting, setDeleting] = useState(false);
 
   const [slabForm, setSlabForm] = useState({ name: '', minSalary: '', maxSalary: '', taxRate: '', description: '', isActive: true });
+  const [originalSlabForm, setOriginalSlabForm] = useState(slabForm);
   const [subTaxForm, setSubTaxForm] = useState({ name: '', code: '', type: 'percentage' as 'percentage' | 'fixed', rate: '', amount: '', description: '', isActive: true });
+  const [originalSubTaxForm, setOriginalSubTaxForm] = useState(subTaxForm);
 
   const fetchData = useCallback(async (options?: { refetch?: boolean }) => {
     const isRefetch = options?.refetch ?? false;
@@ -53,28 +58,77 @@ export default function TaxesPage() {
 
   const openSlabModal = (slab?: TaxSlab) => {
     setEditingSlab(slab ?? null);
-    setSlabForm(slab ? {
+    const nextForm = slab ? {
       name: slab.name, minSalary: String(slab.minSalary),
       maxSalary: slab.maxSalary ? String(slab.maxSalary) : '',
       taxRate: String(slab.taxRate), description: slab.description ?? '', isActive: slab.isActive,
-    } : { name: '', minSalary: '', maxSalary: '', taxRate: '', description: '', isActive: true });
+    } : { name: '', minSalary: '', maxSalary: '', taxRate: '', description: '', isActive: true };
+    setSlabForm(nextForm);
+    setOriginalSlabForm(nextForm);
     setSlabModal(true);
   };
 
   const openSubTaxModal = (slabId: number, subTax?: SubTax) => {
     setActiveSlabId(slabId);
     setEditingSubTax(subTax ?? null);
-    setSubTaxForm(subTax ? {
+    const nextForm = subTax ? {
       name: subTax.name, code: subTax.code, type: subTax.type,
       rate: subTax.rate ? String(subTax.rate) : '',
       amount: subTax.amount ? String(subTax.amount) : '',
       description: subTax.description ?? '', isActive: subTax.isActive,
-    } : { name: '', code: '', type: 'percentage', rate: '', amount: '', description: '', isActive: true });
+    } : { name: '', code: '', type: 'percentage' as const, rate: '', amount: '', description: '', isActive: true };
+    setSubTaxForm(nextForm);
+    setOriginalSubTaxForm(nextForm);
     setSubTaxModal(true);
   };
 
+  const slabEditFields = ['name', 'minSalary', 'maxSalary', 'taxRate', 'description', 'isActive'] as const;
+  const subTaxEditFields = ['name', 'code', 'type', 'rate', 'amount', 'description', 'isActive'] as const;
+
+  const slabFieldComparator = (
+    key: (typeof slabEditFields)[number],
+    current: unknown,
+    original: unknown,
+  ) => {
+    if (key === 'maxSalary' || key === 'description') {
+      return optionalStringsEqual(String(current), String(original));
+    }
+    if (key === 'minSalary' || key === 'taxRate') {
+      return Number(current) === Number(original);
+    }
+    return current === original;
+  };
+
+  const subTaxFieldComparator = (
+    key: (typeof subTaxEditFields)[number],
+    current: unknown,
+    original: unknown,
+  ) => {
+    if (key === 'description') {
+      return optionalStringsEqual(String(current), String(original));
+    }
+    if (key === 'rate' || key === 'amount') {
+      return Number(current || 0) === Number(original || 0);
+    }
+    return current === original;
+  };
+
+  const isSlabEditDirty = useMemo(() => {
+    if (!editingSlab) return true;
+    return hasFieldChanges(slabForm, originalSlabForm, slabEditFields, { isEqual: slabFieldComparator });
+  }, [editingSlab, slabForm, originalSlabForm]);
+
+  const isSubTaxEditDirty = useMemo(() => {
+    if (!editingSubTax) return true;
+    return hasFieldChanges(subTaxForm, originalSubTaxForm, subTaxEditFields, { isEqual: subTaxFieldComparator });
+  }, [editingSubTax, subTaxForm, originalSubTaxForm]);
+
   const handleSlabSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (editingSlab && !isSlabEditDirty) {
+      toast.info(NO_CHANGES_MESSAGE);
+      return;
+    }
     setSaving(true);
     const payload = {
       name: slabForm.name,
@@ -104,6 +158,10 @@ export default function TaxesPage() {
   const handleSubTaxSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!activeSlabId) return;
+    if (editingSubTax && !isSubTaxEditDirty) {
+      toast.info(NO_CHANGES_MESSAGE);
+      return;
+    }
     setSaving(true);
     const payload = {
       name: subTaxForm.name,
@@ -152,6 +210,8 @@ export default function TaxesPage() {
   };
 
   const activeSlab = slabs.find((s) => s.id === activeSlabId);
+  const showSubTaxActionsColumn = hasAnyPermission('taxes.update', 'taxes.delete');
+  const showSlabActions = hasAnyPermission('taxes.update', 'taxes.delete');
 
   return (
     <PageContainer fill>
@@ -160,7 +220,7 @@ export default function TaxesPage() {
         subtitle="Har slab ke apne sub-taxes (EOBI, SS, PT, etc.)"
         onRefetch={() => fetchData({ refetch: true })}
         refetching={refetching}
-        actions={<Button onClick={() => openSlabModal()}>+ Add Slab</Button>}
+        actions={hasPermission('taxes.create') ? <Button onClick={() => openSlabModal()}>+ Add Slab</Button> : undefined}
       />
 
       <div className="scroll-area min-h-0 flex-1 overflow-y-auto pr-1">
@@ -184,16 +244,24 @@ export default function TaxesPage() {
                       </span>
                     </p>
                   </div>
+                  {showSlabActions && (
                   <div className="flex gap-2">
-                    <Button size="sm" variant="secondary" onClick={() => openSlabModal(slab)}>Edit Slab</Button>
-                    <Button size="sm" variant="danger" onClick={() => setDeleteTarget({ type: 'slab', id: slab.id, name: slab.name })}>Delete</Button>
+                    {hasPermission('taxes.update') && (
+                      <Button size="sm" variant="secondary" onClick={() => openSlabModal(slab)}>Edit Slab</Button>
+                    )}
+                    {hasPermission('taxes.delete') && (
+                      <Button size="sm" variant="danger" onClick={() => setDeleteTarget({ type: 'slab', id: slab.id, name: slab.name })}>Delete</Button>
+                    )}
                   </div>
+                  )}
                 </div>
 
                 <div className="px-5 py-4">
                   <div className="mb-3 flex items-center justify-between">
                     <h3 className="text-sm font-semibold text-neutral-700">Sub-Taxes</h3>
-                    <Button size="sm" onClick={() => openSubTaxModal(slab.id)}>+ Add Sub-Tax</Button>
+                    {hasPermission('taxes.create') && (
+                      <Button size="sm" onClick={() => openSubTaxModal(slab.id)}>+ Add Sub-Tax</Button>
+                    )}
                   </div>
 
                   {(slab.subTaxes?.length ?? 0) === 0 ? (
@@ -210,7 +278,7 @@ export default function TaxesPage() {
                             <Th className="w-[100px]">Type</Th>
                             <Th className="w-[100px]">Value</Th>
                             <Th className="w-[90px]">Status</Th>
-                            <Th className="w-[160px]">Actions</Th>
+                            {showSubTaxActionsColumn && <Th className="w-[160px]">Actions</Th>}
                           </tr>
                         </thead>
                         <tbody>
@@ -227,12 +295,18 @@ export default function TaxesPage() {
                                   {st.isActive ? 'Active' : 'Inactive'}
                                 </span>
                               </Td>
+                              {showSubTaxActionsColumn && (
                               <Td>
                                 <div className="flex flex-wrap gap-2">
-                                  <Button size="sm" variant="secondary" onClick={() => openSubTaxModal(slab.id, st)}>Edit</Button>
-                                  <Button size="sm" variant="danger" onClick={() => setDeleteTarget({ type: 'subTax', slabId: slab.id, id: st.id, name: st.name })}>Delete</Button>
+                                  {hasPermission('taxes.update') && (
+                                    <Button size="sm" variant="secondary" onClick={() => openSubTaxModal(slab.id, st)}>Edit</Button>
+                                  )}
+                                  {hasPermission('taxes.delete') && (
+                                    <Button size="sm" variant="danger" onClick={() => setDeleteTarget({ type: 'subTax', slabId: slab.id, id: st.id, name: st.name })}>Delete</Button>
+                                  )}
                                 </div>
                               </Td>
+                              )}
                             </tr>
                           ))}
                         </tbody>
@@ -257,7 +331,9 @@ export default function TaxesPage() {
           <Input label="Description" value={slabForm.description} onChange={(e) => setSlabForm({ ...slabForm, description: e.target.value })} />
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => setSlabModal(false)}>Cancel</Button>
-            <Button type="submit" loading={saving}>{editingSlab ? 'Update' : 'Create'}</Button>
+            <Button type="submit" loading={saving} disabled={!!editingSlab && !isSlabEditDirty}>
+              {editingSlab ? 'Update' : 'Create'}
+            </Button>
           </div>
         </form>
       </Modal>
@@ -279,7 +355,9 @@ export default function TaxesPage() {
           <Input label="Description" value={subTaxForm.description} onChange={(e) => setSubTaxForm({ ...subTaxForm, description: e.target.value })} />
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => setSubTaxModal(false)}>Cancel</Button>
-            <Button type="submit" loading={saving}>{editingSubTax ? 'Update' : 'Create'}</Button>
+            <Button type="submit" loading={saving} disabled={!!editingSubTax && !isSubTaxEditDirty}>
+              {editingSubTax ? 'Update' : 'Create'}
+            </Button>
           </div>
         </form>
       </Modal>

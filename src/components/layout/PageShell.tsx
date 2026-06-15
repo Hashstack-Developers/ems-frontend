@@ -43,7 +43,7 @@ export function PageHeader({
         {subtitle && <p className="mt-1 text-sm text-muted sm:text-base">{subtitle}</p>}
       </div>
       {(onRefetch || actions) && (
-        <div className="flex flex-wrap items-end gap-3">
+        <div className="ml-auto flex flex-wrap items-end justify-end gap-3">
           {onRefetch && <RefetchButton onClick={onRefetch} loading={refetching} />}
           {actions}
         </div>

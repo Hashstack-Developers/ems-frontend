@@ -18,6 +18,32 @@ export interface User {
   email: string;
   fullName: string;
   role: string;
+  roleId?: number;
+  roleLabel?: string;
+  permissions?: string[];
+  isActive?: boolean;
+}
+
+export interface RoleSummary {
+  id: number;
+  name: string;
+  label: string;
+  description: string | null;
+  isSystem: boolean;
+  permissions: string[];
+  permissionCount: number;
+}
+
+export interface RoleDetail extends RoleSummary {
+  users: User[];
+}
+
+export interface PermissionDefinition {
+  id: number;
+  key: string;
+  module: string;
+  action: string;
+  description: string | null;
 }
 
 export interface LoginResponse {
@@ -94,6 +120,43 @@ export interface Payroll {
   taxSlabMaxSalary?: number | null;
   status: 'draft' | 'processed' | 'paid';
   deductions?: PayrollDeduction[];
+}
+
+export interface PayrollGenerationSkip {
+  employeeId: number;
+  employeeCode: string;
+  fullName: string;
+  reason: string;
+}
+
+export interface PayrollGenerationResult {
+  created: Payroll[];
+  skipped: PayrollGenerationSkip[];
+  errors: Array<{
+    employeeId: number;
+    employeeCode: string;
+    fullName: string;
+    message: string;
+  }>;
+  summary: {
+    totalEligible: number;
+    createdCount: number;
+    skippedCount: number;
+    errorCount: number;
+  };
+}
+
+export interface PayrollGenerationStatus {
+  employeeId: number;
+  employeeCode: string;
+  fullName: string;
+  department: string;
+  designation: string;
+  hasPayroll: boolean;
+  payrollId: number | null;
+  payrollStatus: 'draft' | 'processed' | 'paid' | null;
+  canGenerate: boolean;
+  message: string;
 }
 
 export interface SalarySlipAvailability {

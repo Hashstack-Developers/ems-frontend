@@ -1,9 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import api, { getErrorMessage } from '@/lib/api';
-import { getToken } from '@/lib/auth';
 import { MONTHS } from '@/lib/format';
+import { hasAnyPermission, hasPermission } from '@/lib/permissions';
+import {
+  downloadSalarySlipPdf,
+  downloadSalarySlipsZip,
+} from '@/lib/salary-slip-downloads';
 import { useToast } from '@/contexts/ToastContext';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -16,19 +20,23 @@ import {
   Th,
   Td,
 } from '@/components/layout/PageShell';
-import { StatBannerSkeleton, TableBodySkeleton } from '@/components/ui/Skeletons';
+import { TableBodySkeleton } from '@/components/ui/Skeletons';
 import type { ApiResponse, SalarySlip, SalarySlipAvailability } from '@/types';
 
 export default function SalarySlipsPage() {
   const toast = useToast();
+  const selectAllRef = useRef<HTMLInputElement>(null);
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
+  const [departmentFilter, setDepartmentFilter] = useState('');
   const [availability, setAvailability] = useState<SalarySlipAvailability[]>([]);
+  const [selectedPayrollIds, setSelectedPayrollIds] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [refetching, setRefetching] = useState(false);
   const [generating, setGenerating] = useState<number | null>(null);
   const [downloading, setDownloading] = useState<number | null>(null);
+  const [bulkDownloading, setBulkDownloading] = useState<'selected' | 'all' | null>(null);
   const [slipModal, setSlipModal] = useState(false);
   const [currentSlip, setCurrentSlip] = useState<SalarySlip | null>(null);
 
@@ -52,6 +60,129 @@ export default function SalarySlipsPage() {
 
   useEffect(() => { fetchAvailability(); }, [fetchAvailability]);
 
+  useEffect(() => {
+    setSelectedPayrollIds(new Set());
+  }, [month, year, departmentFilter]);
+
+  const departments = useMemo(
+    () => Array.from(new Set(availability.map((item) => item.department))).sort(),
+    [availability],
+  );
+
+  const visibleRows = useMemo(() => {
+    if (!departmentFilter) {
+      return availability;
+    }
+    return availability.filter((item) => item.department === departmentFilter);
+  }, [availability, departmentFilter]);
+
+  const downloadableRows = useMemo(
+    () => visibleRows.filter((item) => item.canGenerateSlip && item.payrollId),
+    [visibleRows],
+  );
+
+  const downloadableIds = useMemo(
+    () => downloadableRows.map((item) => item.payrollId!),
+    [downloadableRows],
+  );
+
+  const selectedCount = useMemo(
+    () => downloadableIds.filter((id) => selectedPayrollIds.has(id)).length,
+    [downloadableIds, selectedPayrollIds],
+  );
+
+  const allSelected =
+    downloadableIds.length > 0 &&
+    downloadableIds.every((id) => selectedPayrollIds.has(id));
+  const someSelected = downloadableIds.some((id) => selectedPayrollIds.has(id));
+  const indeterminate = someSelected && !allSelected;
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = indeterminate;
+    }
+  }, [indeterminate]);
+
+  const toggleRowSelection = (payrollId: number) => {
+    setSelectedPayrollIds((current) => {
+      const next = new Set(current);
+      if (next.has(payrollId)) {
+        next.delete(payrollId);
+      } else {
+        next.add(payrollId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedPayrollIds(new Set());
+      return;
+    }
+
+    setSelectedPayrollIds(new Set(downloadableIds));
+  };
+
+  const showBulkDownloadToast = (summary: { added: number; failed: number; messages?: string[] } | null) => {
+    if (!summary) {
+      toast.success('ZIP downloaded successfully');
+      return;
+    }
+
+    if (summary.failed > 0) {
+      toast.success(`Downloaded ${summary.added} salary slip(s); ${summary.failed} failed`);
+      return;
+    }
+
+    toast.success(`Downloaded ${summary.added} salary slip(s)`);
+  };
+
+  const handleDownloadSelected = async () => {
+    if (selectedCount === 0) {
+      toast.info('Select at least one salary slip to download');
+      return;
+    }
+
+    setBulkDownloading('selected');
+    try {
+      const summary = await downloadSalarySlipsZip({
+        month,
+        year,
+        payrollIds: Array.from(selectedPayrollIds),
+        department: departmentFilter || undefined,
+      });
+      showBulkDownloadToast(summary);
+      setSelectedPayrollIds(new Set());
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'ZIP download failed');
+    } finally {
+      setBulkDownloading(null);
+    }
+  };
+
+  const handleDownloadAll = async () => {
+    if (downloadableRows.length === 0) {
+      toast.info('No salary slips available to download for the current filters');
+      return;
+    }
+
+    setBulkDownloading('all');
+    try {
+      const summary = await downloadSalarySlipsZip({
+        month,
+        year,
+        department: departmentFilter || undefined,
+      });
+      showBulkDownloadToast(summary);
+      setSelectedPayrollIds(new Set());
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'ZIP download failed');
+    } finally {
+      setBulkDownloading(null);
+    }
+  };
+
   const handleGenerateSlip = async (item: SalarySlipAvailability) => {
     if (!item.canGenerateSlip) return;
     setGenerating(item.employeeId);
@@ -73,24 +204,7 @@ export default function SalarySlipsPage() {
   const handleDownloadPdf = async (payrollId: number) => {
     setDownloading(payrollId);
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
-      const response = await fetch(
-        `${baseUrl}/salary-slips/${payrollId}/pdf`,
-        { headers: { Authorization: `Bearer ${getToken()}` } },
-      );
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(Array.isArray(err.message) ? err.message.join(', ') : err.message);
-      }
-      const blob = await response.blob();
-      const disposition = response.headers.get('Content-Disposition');
-      const filename = disposition?.match(/filename="(.+)"/)?.[1] ?? `salary-slip-${payrollId}.pdf`;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
+      await downloadSalarySlipPdf(payrollId);
       toast.success('PDF downloaded');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'PDF download failed');
@@ -104,6 +218,9 @@ export default function SalarySlipsPage() {
   };
 
   const eligibleCount = availability.filter((a) => a.canGenerateSlip).length;
+  const canExport = hasPermission('salarySlips.export');
+  const showActionsColumn = hasAnyPermission('salarySlips.generate', 'salarySlips.export');
+  const columnCount = (canExport ? 1 : 0) + 4 + (showActionsColumn ? 1 : 0);
 
   return (
     <PageContainer fill>
@@ -126,10 +243,40 @@ export default function SalarySlipsPage() {
               onChange={(e) => setYear(parseInt(e.target.value, 10))}
               options={[year - 1, year, year + 1].map((y) => ({ value: y, label: String(y) }))}
             />
+            <Select
+              label="Department"
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              options={[
+                { value: '', label: 'All departments' },
+                ...departments.map((department) => ({ value: department, label: department })),
+              ]}
+            />
             <div className="pb-1">
               <p className="text-xs font-medium uppercase tracking-wider text-muted">Available slips</p>
-              <p className="text-xl font-bold text-primary-dark">{eligibleCount} / {availability.length}</p>
+              <p className="text-xl font-bold text-primary-dark">
+                {downloadableRows.length} / {visibleRows.length}
+              </p>
             </div>
+            {canExport && (
+              <>
+                <Button
+                  variant="secondary"
+                  onClick={handleDownloadSelected}
+                  loading={bulkDownloading === 'selected'}
+                  disabled={selectedCount === 0 || bulkDownloading === 'all'}
+                >
+                  Download Selected{selectedCount > 0 ? ` (${selectedCount})` : ''}
+                </Button>
+                <Button
+                  onClick={handleDownloadAll}
+                  loading={bulkDownloading === 'all'}
+                  disabled={downloadableRows.length === 0 || bulkDownloading === 'selected'}
+                >
+                  Download All{downloadableRows.length > 0 ? ` (${downloadableRows.length})` : ''}
+                </Button>
+              </>
+            )}
           </>
         }
       />
@@ -137,64 +284,98 @@ export default function SalarySlipsPage() {
       <DataTableCard
         header={
           <>
+            {canExport && (
+              <Th className="w-[44px]">
+                <input
+                  ref={selectAllRef}
+                  type="checkbox"
+                  checked={allSelected}
+                  disabled={downloadableRows.length === 0}
+                  onChange={toggleSelectAll}
+                  aria-label="Select all downloadable salary slips"
+                  className="h-4 w-4 rounded border-border"
+                />
+              </Th>
+            )}
             <Th className="min-w-[180px]">Employee</Th>
             <Th className="min-w-[140px]">Department</Th>
             <Th className="w-[120px]">Payroll Status</Th>
             <Th className="min-w-[200px]">Slip Status</Th>
-            <Th className="w-[200px]">Actions</Th>
+            {showActionsColumn && <Th className="w-[200px]">Actions</Th>}
           </>
         }
       >
         {loading || refetching ? (
-          <TableBodySkeleton rows={8} cols={5} />
-        ) : availability.length === 0 ? (
-          <tr><td colSpan={5} className="py-8 text-center text-muted-light">No active employees found</td></tr>
+          <TableBodySkeleton rows={8} cols={columnCount} />
+        ) : visibleRows.length === 0 ? (
+          <tr><td colSpan={columnCount} className="py-8 text-center text-muted-light">No active employees found</td></tr>
         ) : (
-          availability.map((item) => (
-            <tr key={item.employeeId}>
-              <Td>
-                <p className="font-medium">{item.fullName}</p>
-                <p className="font-mono text-xs text-muted-light">{item.employeeCode}</p>
-              </Td>
-              <Td>{item.department}</Td>
-              <Td>
-                {item.payrollStatus ? (
-                  <span className="rounded-full bg-primary-soft px-2 py-0.5 text-xs font-medium text-primary-hover capitalize">
-                    {item.payrollStatus}
-                  </span>
-                ) : (
-                  <span className="text-xs text-muted-light">Not created</span>
+          visibleRows.map((item) => {
+            const isDownloadable = item.canGenerateSlip && !!item.payrollId;
+            const isSelected = item.payrollId ? selectedPayrollIds.has(item.payrollId) : false;
+
+            return (
+              <tr key={item.employeeId}>
+                {canExport && (
+                  <Td>
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      disabled={!isDownloadable}
+                      onChange={() => item.payrollId && toggleRowSelection(item.payrollId)}
+                      aria-label={`Select ${item.fullName}`}
+                      className="h-4 w-4 rounded border-border disabled:opacity-40"
+                    />
+                  </Td>
                 )}
-              </Td>
-              <Td>
-                <span className={`text-xs ${item.canGenerateSlip ? 'text-success' : 'text-warning'}`}>
-                  {item.message}
-                </span>
-              </Td>
-              <Td>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    disabled={!item.canGenerateSlip}
-                    loading={generating === item.employeeId}
-                    onClick={() => handleGenerateSlip(item)}
-                  >
-                    View Slip
-                  </Button>
-                  {item.payrollId && item.canGenerateSlip && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      loading={downloading === item.payrollId}
-                      onClick={() => handleDownloadPdf(item.payrollId!)}
-                    >
-                      PDF
-                    </Button>
+                <Td>
+                  <p className="font-medium">{item.fullName}</p>
+                  <p className="font-mono text-xs text-muted-light">{item.employeeCode}</p>
+                </Td>
+                <Td>{item.department}</Td>
+                <Td>
+                  {item.payrollStatus ? (
+                    <span className="rounded-full bg-primary-soft px-2 py-0.5 text-xs font-medium text-primary-hover capitalize">
+                      {item.payrollStatus}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-light">Not created</span>
                   )}
-                </div>
-              </Td>
-            </tr>
-          ))
+                </Td>
+                <Td>
+                  <span className={`text-xs ${item.canGenerateSlip ? 'text-success' : 'text-warning'}`}>
+                    {item.message}
+                  </span>
+                </Td>
+                {showActionsColumn && (
+                <Td>
+                  <div className="flex flex-wrap gap-2">
+                    {hasPermission('salarySlips.generate') && (
+                      <Button
+                        size="sm"
+                        disabled={!item.canGenerateSlip}
+                        loading={generating === item.employeeId}
+                        onClick={() => handleGenerateSlip(item)}
+                      >
+                        View Slip
+                      </Button>
+                    )}
+                    {canExport && isDownloadable && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        loading={downloading === item.payrollId}
+                        onClick={() => handleDownloadPdf(item.payrollId!)}
+                      >
+                        PDF
+                      </Button>
+                    )}
+                  </div>
+                </Td>
+                )}
+              </tr>
+            );
+          })
         )}
       </DataTableCard>
 
@@ -214,9 +395,11 @@ export default function SalarySlipsPage() {
             <SalarySlipView slip={currentSlip} />
             <div className="mt-4 flex justify-end gap-2 print:hidden">
               <Button variant="secondary" onClick={handlePrint}>Print</Button>
-              <Button onClick={() => handleDownloadPdf(currentSlip.payrollId)} loading={downloading === currentSlip.payrollId}>
-                Download PDF
-              </Button>
+              {canExport && (
+                <Button onClick={() => handleDownloadPdf(currentSlip.payrollId)} loading={downloading === currentSlip.payrollId}>
+                  Download PDF
+                </Button>
+              )}
             </div>
           </div>
         )}

@@ -2,51 +2,62 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { clearAuth, getUser } from '@/lib/auth';
 import { getEnabledNavItems, getPageHref } from '@/lib/pages';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import type { User } from '@/types';
-
-const navItems = getEnabledNavItems();
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const navItems = getEnabledNavItems();
+  const mainItems = navItems.filter((item) => item.section !== 'admin');
+  const adminItems = navItems.filter((item) => item.section === 'admin');
+
+  const renderLink = (item: (typeof navItems)[number]) => {
+    const active =
+      pathname === item.href ||
+      (item.key === 'settings' && pathname.startsWith('/settings') && item.href === '/settings') ||
+      (item.key !== 'settings' && pathname.startsWith(`${item.href}/`));
+
+    return (
+      <Link
+        key={item.key}
+        href={item.href}
+        onClick={onNavigate}
+        className={`flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 lg:gap-3 ${
+          active
+            ? 'bg-primary-light text-primary shadow-sm ring-1 ring-primary-soft'
+            : 'text-neutral-600 hover:bg-neutral-50 hover:text-foreground hover:translate-x-0.5'
+        }`}
+      >
+        <span className={`nav-icon-3d ${active ? 'nav-icon-3d-active' : ''}`}>{item.icon}</span>
+        <span className="truncate">{item.label}</span>
+      </Link>
+    );
+  };
+
   return (
     <>
-      {navItems.map((item) => {
-        const active = pathname === item.href;
-        return (
-          <Link
-            key={item.key}
-            href={item.href}
-            onClick={onNavigate}
-            className={`flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 lg:gap-3 ${
-              active
-                ? 'bg-primary-light text-primary shadow-sm ring-1 ring-primary-soft'
-                : 'text-neutral-600 hover:bg-neutral-50 hover:text-foreground hover:translate-x-0.5'
-            }`}
-          >
-            <span className={`nav-icon-3d ${active ? 'nav-icon-3d-active' : ''}`}>{item.icon}</span>
-            <span className="truncate">{item.label}</span>
-          </Link>
-        );
-      })}
+      {mainItems.map(renderLink)}
+      {adminItems.length > 0 && (
+        <>
+          <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-light">
+            Administration
+          </p>
+          {adminItems.map(renderLink)}
+        </>
+      )}
     </>
   );
 }
 
 export function Sidebar() {
+  const user = getUser();
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const settingsAccountHref = getPageHref('settings') ? '/settings/account' : null;
-
-  useEffect(() => {
-    setUser(getUser());
-  }, []);
 
   const handleLogout = () => {
     setLogoutOpen(false);
@@ -57,7 +68,6 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile top bar — fixed, main content scrolls underneath with pt-14 */}
       <header className="fixed top-0 right-0 left-0 z-50 flex items-center justify-between border-b border-border bg-surface/95 px-4 py-3 backdrop-blur-sm lg:hidden">
         <div>
           <h1 className="text-base font-bold text-primary-hover">EMS</h1>
@@ -84,7 +94,6 @@ export function Sidebar() {
         />
       )}
 
-      {/* Sidebar — fixed; mobile drawer sits below top bar so first nav item stays visible */}
       <aside
         className={`fixed top-14 left-0 z-[45] flex h-[calc(100dvh-3.5rem)] w-64 flex-col border-r border-border bg-surface transition-transform duration-300 lg:top-0 lg:z-40 lg:h-screen ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
@@ -107,6 +116,9 @@ export function Sidebar() {
         <div className="shrink-0 border-t border-border p-4">
           <p className="truncate text-sm font-medium text-neutral-800">{user?.fullName ?? '—'}</p>
           <p className="truncate text-xs text-muted">{user?.email ?? ''}</p>
+          {user?.role && (
+            <p className="mt-1 truncate text-[11px] capitalize text-muted-light">{user.roleLabel ?? user.role}</p>
+          )}
           {settingsAccountHref && (
             <Link
               href={settingsAccountHref}
