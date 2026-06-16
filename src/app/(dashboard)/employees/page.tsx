@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import api, { getErrorMessage } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { getChangedFields, hasFieldChanges, NO_CHANGES_MESSAGE, optionalStringsEqual } from '@/lib/form-changes';
@@ -8,9 +8,7 @@ import { hasAnyPermission, hasPermission } from '@/lib/permissions';
 import { useToast } from '@/contexts/ToastContext';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
-import { Select } from '@/components/ui/Select';
 import { DataTableCard, PageContainer, PageHeader, Th, Td } from '@/components/layout/PageShell';
 import { TableBodySkeleton } from '@/components/ui/Skeletons';
 import type { ApiResponse, Employee } from '@/types';
@@ -23,10 +21,7 @@ import {
   emptyForm,
   type EmployeeFormValues,
 } from './employee-form';
-
-function SectionTitle({ children }: { children: string }) {
-  return <h3 className="border-b border-border pb-1 text-sm font-semibold text-neutral-800">{children}</h3>;
-}
+import { EmployeeWizard } from './EmployeeWizard';
 
 export default function EmployeesPage() {
   const toast = useToast();
@@ -41,6 +36,7 @@ export default function EmployeesPage() {
   const [originalForm, setOriginalForm] = useState<EmployeeFormValues>(emptyForm);
   const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [discardConfirm, setDiscardConfirm] = useState(false);
 
   const fetchEmployees = useCallback(async (options?: { refetch?: boolean }) => {
     const isRefetch = options?.refetch ?? false;
@@ -88,7 +84,7 @@ export default function EmployeesPage() {
       const originalNum = original === '' ? null : Number(original);
       return currentNum === originalNum;
     }
-    if (key === 'mobile' || key === 'employmentType') {
+    if (key === 'mobile' || key === 'employmentType' || key === 'cnicNo' || key === 'srNo') {
       return optionalStringsEqual(String(current), String(original));
     }
     return current === original;
@@ -99,9 +95,25 @@ export default function EmployeesPage() {
     return hasFieldChanges(form, originalForm, EDITABLE_FORM_FIELDS, { isEqual: fieldComparator });
   }, [editing, form, originalForm]);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const isFormDirty = useMemo(() => {
+    if (editing) return isEditDirty;
+    return hasFieldChanges(form, emptyForm, EDITABLE_FORM_FIELDS, { isEqual: fieldComparator });
+  }, [editing, form, isEditDirty]);
 
+  const closeModal = () => {
+    if (isFormDirty) {
+      setDiscardConfirm(true);
+      return;
+    }
+    setModalOpen(false);
+  };
+
+  const confirmDiscard = () => {
+    setDiscardConfirm(false);
+    setModalOpen(false);
+  };
+
+  const handleSubmit = async () => {
     if (editing && !isEditDirty) {
       toast.info(NO_CHANGES_MESSAGE);
       return;
@@ -202,90 +214,34 @@ export default function EmployeesPage() {
         )}
       </DataTableCard>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Employee' : 'Add Employee'} size="xl">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {editing && (
-            <Input label="Employee Code" value={editing.employeeCode} readOnly disabled />
-          )}
-
-          <SectionTitle>Personal & Employment</SectionTitle>
-          <div className="grid grid-cols-2 gap-3">
-            <Input label="Name" value={form.name} onChange={(e) => updateForm({ name: e.target.value })} required />
-            <Input label="Designation" value={form.designation} onChange={(e) => updateForm({ designation: e.target.value })} required />
-            <Input label="Basic Pay Scale" value={form.basicPayScale} onChange={(e) => updateForm({ basicPayScale: e.target.value })} />
-            <Input label="Religion" value={form.religion} onChange={(e) => updateForm({ religion: e.target.value })} />
-            <Input label="Salary Till" type="date" value={form.salaryTill} onChange={(e) => updateForm({ salaryTill: e.target.value })} />
-            <Input label="Date Of Joining" type="date" value={form.dateOfJoining} onChange={(e) => updateForm({ dateOfJoining: e.target.value })} required />
-            <Input label="Contract Expiry Date" type="date" value={form.contractExpiryDate} onChange={(e) => updateForm({ contractExpiryDate: e.target.value })} />
-            <Select
-              label="Status Contract or Regular"
-              value={form.employmentType}
-              onChange={(e) => updateForm({ employmentType: e.target.value as EmployeeFormValues['employmentType'] })}
-              options={[
-                { value: '', label: 'Select type' },
-                { value: 'contract', label: 'Contract' },
-                { value: 'regular', label: 'Regular' },
-              ]}
-            />
-            <Input label="Date of Regularization" type="date" value={form.dateOfRegularization} onChange={(e) => updateForm({ dateOfRegularization: e.target.value })} />
-            <Input label="DOB" type="date" value={form.dateOfBirth} onChange={(e) => updateForm({ dateOfBirth: e.target.value })} />
-            <Input label="Date Of Retirement (Age 60)" type="date" value={form.dateOfRetirement} onChange={(e) => updateForm({ dateOfRetirement: e.target.value })} />
-            <Input label="Length Of Service" value={form.lengthOfService} onChange={(e) => updateForm({ lengthOfService: e.target.value })} />
-            <Input label="Mobile" value={form.mobile} onChange={(e) => updateForm({ mobile: e.target.value })} />
-            <Input label="CNIC No" value={form.cnicNo} onChange={(e) => updateForm({ cnicNo: e.target.value })} />
-            <Input label="E-Mail" type="email" value={form.email} onChange={(e) => updateForm({ email: e.target.value })} required />
-            <Input label="Stage" value={form.stage} onChange={(e) => updateForm({ stage: e.target.value })} />
-            <Select
-              label="Status"
-              value={form.status}
-              onChange={(e) => updateForm({ status: e.target.value as 'active' | 'inactive' })}
-              options={[
-                { value: 'active', label: 'Active' },
-                { value: 'inactive', label: 'Inactive' },
-              ]}
-            />
-          </div>
-
-          <SectionTitle>Salary & Allowances</SectionTitle>
-          <div className="grid grid-cols-2 gap-3">
-            <Input label="Basic Pay 01-12-2025" type="number" min="0" step="0.01" value={form.basicPayDec2025} onChange={(e) => updateForm({ basicPayDec2025: e.target.value })} />
-            <Input label="Personal Allowance" type="number" min="0" step="0.01" value={form.personalAllowance} onChange={(e) => updateForm({ personalAllowance: e.target.value })} />
-            <Input label="H.R" type="number" min="0" step="0.01" value={form.hr} onChange={(e) => updateForm({ hr: e.target.value })} />
-            <Input label="C.A" type="number" min="0" step="0.01" value={form.ca} onChange={(e) => updateForm({ ca: e.target.value })} />
-            <Input label="M.A" type="number" min="0" step="0.01" value={form.ma} onChange={(e) => updateForm({ ma: e.target.value })} />
-            <Input label="Ad-hoc Allowance 2022 (15%)" type="number" min="0" step="0.01" value={form.adHocAllowance2022} onChange={(e) => updateForm({ adHocAllowance2022: e.target.value })} />
-            <Input label="Ad-hoc Allowance 2023 (30% & 35%)" type="number" min="0" step="0.01" value={form.adHocAllowance2023} onChange={(e) => updateForm({ adHocAllowance2023: e.target.value })} />
-            <Input label="Ad-hoc Allowance 2024 (20% & 25%)" type="number" min="0" step="0.01" value={form.adHocAllowance2024} onChange={(e) => updateForm({ adHocAllowance2024: e.target.value })} />
-            <Input label="Ad-hoc Allowance 2025 (10%)" type="number" min="0" step="0.01" value={form.adHocAllowance2025} onChange={(e) => updateForm({ adHocAllowance2025: e.target.value })} />
-            <Input label="Overtime Allowance" type="number" min="0" step="0.01" value={form.overtimeAllowance} onChange={(e) => updateForm({ overtimeAllowance: e.target.value })} />
-            <Input label="Integrated Allowance" type="number" min="0" step="0.01" value={form.integratedAllowance} onChange={(e) => updateForm({ integratedAllowance: e.target.value })} />
-            <Input label="W.A" type="number" min="0" step="0.01" value={form.wa} onChange={(e) => updateForm({ wa: e.target.value })} />
-            <Input label="Special Allowance" type="number" min="0" step="0.01" value={form.specialAllowance} onChange={(e) => updateForm({ specialAllowance: e.target.value })} />
-            <Input label="Special Pay" type="number" min="0" step="0.01" value={form.specialPay} onChange={(e) => updateForm({ specialPay: e.target.value })} />
-            <Input label="M-Phil/Special Allowance" type="number" min="0" step="0.01" value={form.mphilSpecialAllowance} onChange={(e) => updateForm({ mphilSpecialAllowance: e.target.value })} />
-            <Input label="Social Security Benefit" type="number" min="0" step="0.01" value={form.socialSecurityBenefit} onChange={(e) => updateForm({ socialSecurityBenefit: e.target.value })} />
-            <Input label="Gross Salary" type="number" min="0" step="0.01" value={form.grossSalary} onChange={(e) => updateForm({ grossSalary: e.target.value })} />
-          </div>
-
-          <SectionTitle>Deductions & Net Pay</SectionTitle>
-          <div className="grid grid-cols-2 gap-3">
-            <Input label="Deduction (If Any)" type="number" min="0" step="0.01" value={form.deduction} onChange={(e) => updateForm({ deduction: e.target.value })} />
-            <Input label="Arrears (if any)" type="number" min="0" step="0.01" value={form.arrears} onChange={(e) => updateForm({ arrears: e.target.value })} />
-            <Input label="Gross Salary with taxes" type="number" min="0" step="0.01" value={form.grossSalaryWithTaxes} onChange={(e) => updateForm({ grossSalaryWithTaxes: e.target.value })} />
-            <Input label="Deduct: Income Tax (May, 2026)" type="number" min="0" step="0.01" value={form.incomeTaxMay2026} onChange={(e) => updateForm({ incomeTaxMay2026: e.target.value })} />
-            <Input label="GP Fund" type="number" min="0" step="0.01" value={form.gpFund} onChange={(e) => updateForm({ gpFund: e.target.value })} />
-            <Input label="Net Payable" type="number" min="0" step="0.01" value={form.netPayable} onChange={(e) => updateForm({ netPayable: e.target.value })} />
-            <Input label="Account Number" value={form.accountNumber} onChange={(e) => updateForm({ accountNumber: e.target.value })} />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button type="submit" loading={saving} disabled={!!editing && !isEditDirty}>
-              {editing ? 'Update' : 'Create'}
-            </Button>
-          </div>
-        </form>
+      <Modal
+        open={modalOpen}
+        onClose={closeModal}
+        title={editing ? 'Edit Employee' : 'Add Employee'}
+        size="xl"
+        scrollBody={false}
+      >
+        <EmployeeWizard
+          key={editing?.id ?? 'create'}
+          form={form}
+          employeeCode={editing?.employeeCode}
+          isEditing={!!editing}
+          saving={saving}
+          isDirty={isEditDirty}
+          onUpdate={updateForm}
+          onSubmit={handleSubmit}
+          onCancel={closeModal}
+        />
       </Modal>
+
+      <ConfirmModal
+        open={discardConfirm}
+        onClose={() => setDiscardConfirm(false)}
+        onConfirm={confirmDiscard}
+        title="Discard Changes?"
+        message="You have unsaved changes. Are you sure you want to close without saving?"
+        confirmLabel="Discard"
+      />
 
       <ConfirmModal
         open={!!deleteTarget}

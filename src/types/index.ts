@@ -54,7 +54,9 @@ export interface LoginResponse {
 export interface Employee {
   id: number;
   employeeCode: string;
+  srNo?: string | null;
   name: string;
+  fatherName?: string | null;
   designation: string;
   basicPayScale?: string | null;
   religion?: string | null;
@@ -70,7 +72,10 @@ export interface Employee {
   cnicNo?: string | null;
   email: string;
   stage?: string | null;
+  timePeriod?: string | null;
+  increment?: number | null;
   basicPayDec2025?: number | null;
+  basicPayJul2026?: number | null;
   personalAllowance?: number | null;
   hr?: number | null;
   ca?: number | null;
@@ -79,6 +84,8 @@ export interface Employee {
   adHocAllowance2023?: number | null;
   adHocAllowance2024?: number | null;
   adHocAllowance2025?: number | null;
+  adHocAllowance2026?: number | null;
+  personalPay?: number | null;
   overtimeAllowance?: number | null;
   integratedAllowance?: number | null;
   wa?: number | null;
@@ -87,11 +94,17 @@ export interface Employee {
   mphilSpecialAllowance?: number | null;
   socialSecurityBenefit?: number | null;
   grossSalary?: number | null;
+  loanAdvance?: number | null;
   deduction?: number | null;
   arrears?: number | null;
+  previousDeduction?: number | null;
+  totalDeductedIncomeTax202526?: number | null;
+  annualIncomeTax202526?: number | null;
   grossSalaryWithTaxes?: number | null;
   incomeTaxMay2026?: number | null;
   gpFund?: number | null;
+  previouslyCollectedGpFund?: number | null;
+  gpfCollection?: number | null;
   netPayable?: number | null;
   accountNumber?: string | null;
   status: 'active' | 'inactive';
