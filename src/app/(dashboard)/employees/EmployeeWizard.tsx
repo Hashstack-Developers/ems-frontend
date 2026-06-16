@@ -199,7 +199,15 @@ export function EmployeeWizard({
           <Input label="Stage" value={form.stage} onChange={(e) => onUpdate({ stage: e.target.value })} />
           <Input label="Salary Till" type="date" value={form.salaryTill} onChange={(e) => onUpdate({ salaryTill: e.target.value })} />
           <Input label="Time Period" value={form.timePeriod} readOnly disabled />
-          <Input label="Increment" value={form.increment} readOnly disabled />
+          <Input
+            label="Increment"
+            value={form.increment || '—'}
+            readOnly
+            disabled
+          />
+          <p className="col-span-full text-xs text-muted">
+            Increment is auto-calculated in Salary Structure (Step 4) as: Basic Pay 01-07-2026 minus Basic Pay 01-12-2025.
+          </p>
         </FormGrid>
       )}
 
@@ -207,6 +215,12 @@ export function EmployeeWizard({
         <FormGrid>
           <Input label="Basic Pay 01-12-2025" {...num('basicPayDec2025')} />
           <Input label="Basic Pay 01-07-2026" {...num('basicPayJul2026')} />
+          <Input
+            label="Increment (Jul 2026 − Dec 2025)"
+            value={form.increment || '—'}
+            readOnly
+            disabled
+          />
           <Input label="Personal Allowance" {...num('personalAllowance')} />
           <Input label="H.R" {...num('hr')} />
           <Input label="C.A" {...num('ca')} />

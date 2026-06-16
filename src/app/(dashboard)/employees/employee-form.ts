@@ -125,7 +125,6 @@ export const EDITABLE_FORM_FIELDS = [
   'status',
   'stage',
   'timePeriod',
-  'increment',
   'salaryTill',
   ...NUMERIC_FORM_FIELDS,
 ] as const satisfies readonly (keyof EmployeeFormValues)[];
@@ -229,7 +228,8 @@ function computeTimePeriod(dateOfJoining: string, salaryTill: string): string {
 function computeIncrement(basicPayDec2025: string, basicPayJul2026: string): string {
   const dec = parseFloat(basicPayDec2025);
   const jul = parseFloat(basicPayJul2026);
-  if (Number.isNaN(dec) || Number.isNaN(jul) || jul <= dec) return '';
+  if (Number.isNaN(dec) || Number.isNaN(jul)) return '';
+  if (jul <= dec) return '0.00';
   return (jul - dec).toFixed(2);
 }
 
@@ -243,10 +243,11 @@ export function applyDerivedFields(form: EmployeeFormValues): EmployeeFormValues
   const timePeriod = form.dateOfJoining
     ? computeTimePeriod(form.dateOfJoining, form.salaryTill)
     : form.timePeriod;
-  const increment =
-    form.basicPayDec2025 && form.basicPayJul2026
-      ? computeIncrement(form.basicPayDec2025, form.basicPayJul2026)
-      : form.increment;
+  const hasBasicPays =
+    form.basicPayDec2025.trim() !== '' && form.basicPayJul2026.trim() !== '';
+  const increment = hasBasicPays
+    ? computeIncrement(form.basicPayDec2025, form.basicPayJul2026)
+    : form.increment;
 
   return {
     ...form,
