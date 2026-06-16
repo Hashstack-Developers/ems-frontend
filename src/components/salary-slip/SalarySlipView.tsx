@@ -22,8 +22,8 @@ export function SalarySlipView({ slip }: SalarySlipViewProps) {
           <p className="text-sm text-neutral-600">{slip.employee.employeeCode}</p>
         </div>
         <div>
-          <p className="text-xs font-medium uppercase text-muted-light">Department</p>
-          <p className="text-sm text-neutral-800">{slip.employee.department}</p>
+          <p className="text-xs font-medium uppercase text-muted-light">Stage</p>
+          <p className="text-sm text-neutral-800">{slip.employee.stage}</p>
           <p className="text-sm text-neutral-600">{slip.employee.designation}</p>
         </div>
       </div>

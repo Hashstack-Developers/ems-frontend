@@ -34,7 +34,7 @@ export default function TaxesPage() {
   >(null);
   const [deleting, setDeleting] = useState(false);
 
-  const [slabForm, setSlabForm] = useState({ name: '', minSalary: '', maxSalary: '', taxRate: '', description: '', isActive: true });
+  const [slabForm, setSlabForm] = useState({ name: '', minSalary: '', maxSalary: '', taxRate: '', fixedTaxAmount: '', description: '', isActive: true });
   const [originalSlabForm, setOriginalSlabForm] = useState(slabForm);
   const [subTaxForm, setSubTaxForm] = useState({ name: '', code: '', type: 'percentage' as 'percentage' | 'fixed', rate: '', amount: '', description: '', isActive: true });
   const [originalSubTaxForm, setOriginalSubTaxForm] = useState(subTaxForm);
@@ -61,8 +61,10 @@ export default function TaxesPage() {
     const nextForm = slab ? {
       name: slab.name, minSalary: String(slab.minSalary),
       maxSalary: slab.maxSalary ? String(slab.maxSalary) : '',
-      taxRate: String(slab.taxRate), description: slab.description ?? '', isActive: slab.isActive,
-    } : { name: '', minSalary: '', maxSalary: '', taxRate: '', description: '', isActive: true };
+      taxRate: slab.taxRate != null ? String(slab.taxRate) : '',
+      fixedTaxAmount: slab.fixedTaxAmount != null ? String(slab.fixedTaxAmount) : '',
+      description: slab.description ?? '', isActive: slab.isActive,
+    } : { name: '', minSalary: '', maxSalary: '', taxRate: '', fixedTaxAmount: '', description: '', isActive: true };
     setSlabForm(nextForm);
     setOriginalSlabForm(nextForm);
     setSlabModal(true);
@@ -82,7 +84,7 @@ export default function TaxesPage() {
     setSubTaxModal(true);
   };
 
-  const slabEditFields = ['name', 'minSalary', 'maxSalary', 'taxRate', 'description', 'isActive'] as const;
+  const slabEditFields = ['name', 'minSalary', 'maxSalary', 'taxRate', 'fixedTaxAmount', 'description', 'isActive'] as const;
   const subTaxEditFields = ['name', 'code', 'type', 'rate', 'amount', 'description', 'isActive'] as const;
 
   const slabFieldComparator = (
@@ -90,10 +92,10 @@ export default function TaxesPage() {
     current: unknown,
     original: unknown,
   ) => {
-    if (key === 'maxSalary' || key === 'description') {
+    if (key === 'maxSalary' || key === 'description' || key === 'taxRate' || key === 'fixedTaxAmount') {
       return optionalStringsEqual(String(current), String(original));
     }
-    if (key === 'minSalary' || key === 'taxRate') {
+    if (key === 'minSalary') {
       return Number(current) === Number(original);
     }
     return current === original;
@@ -134,7 +136,8 @@ export default function TaxesPage() {
       name: slabForm.name,
       minSalary: parseFloat(slabForm.minSalary),
       maxSalary: slabForm.maxSalary ? parseFloat(slabForm.maxSalary) : undefined,
-      taxRate: parseFloat(slabForm.taxRate),
+      taxRate: slabForm.taxRate ? parseFloat(slabForm.taxRate) : null,
+      fixedTaxAmount: slabForm.fixedTaxAmount ? parseFloat(slabForm.fixedTaxAmount) : null,
       description: slabForm.description || undefined,
       isActive: slabForm.isActive,
     };
@@ -209,6 +212,16 @@ export default function TaxesPage() {
     }
   };
 
+  const formatSlabTaxSummary = (slab: TaxSlab) => {
+    const parts: string[] = [];
+    if (slab.taxRate != null && Number(slab.taxRate) > 0) {
+      parts.push(`${Number(slab.taxRate)}% on amount exceeding ${formatCurrency(Math.max(0, Number(slab.minSalary) - 1))}`);
+    }
+    if (slab.fixedTaxAmount != null && Number(slab.fixedTaxAmount) > 0) {
+      parts.push(`Fixed ${formatCurrency(Number(slab.fixedTaxAmount))} / year`);
+    }
+    return parts.length > 0 ? parts.join(' + ') : 'No tax';
+  };
   const activeSlab = slabs.find((s) => s.id === activeSlabId);
   const showSubTaxActionsColumn = hasAnyPermission('taxes.update', 'taxes.delete');
   const showSlabActions = hasAnyPermission('taxes.update', 'taxes.delete');
@@ -217,7 +230,7 @@ export default function TaxesPage() {
     <PageContainer fill>
       <PageHeader
         title="Taxes"
-        subtitle="Har slab ke apne sub-taxes (EOBI, SS, PT, etc.)"
+        subtitle="Annual income slabs — annual tax is divided by 12 and deducted on each monthly payroll"
         onRefetch={() => fetchData({ refetch: true })}
         refetching={refetching}
         actions={hasPermission('taxes.create') ? <Button onClick={() => openSlabModal()}>+ Add Slab</Button> : undefined}
@@ -236,8 +249,8 @@ export default function TaxesPage() {
                   <div>
                     <h2 className="text-lg font-semibold text-foreground">{slab.name}</h2>
                     <p className="text-sm text-muted">
-                      {formatCurrency(Number(slab.minSalary))} – {slab.maxSalary ? formatCurrency(Number(slab.maxSalary)) : '∞'}
-                      {' · '}{Number(slab.taxRate)}% income tax
+                      Annual: {formatCurrency(Number(slab.minSalary))} – {slab.maxSalary ? formatCurrency(Number(slab.maxSalary)) : '∞'}
+                      {' · '}{formatSlabTaxSummary(slab)}
                       {' · '}
                       <span className={slab.isActive ? 'text-success' : 'text-muted-light'}>
                         {slab.isActive ? 'Active' : 'Inactive'}
@@ -266,7 +279,7 @@ export default function TaxesPage() {
 
                   {(slab.subTaxes?.length ?? 0) === 0 ? (
                     <p className="rounded-lg border border-dashed border-border py-6 text-center text-sm text-muted-light">
-                      Is slab ke liye koi sub-tax nahi. &quot;+ Add Sub-Tax&quot; se add karein.
+                      No sub-taxes for this slab. Use &quot;+ Add Sub-Tax&quot; to add one.
                     </p>
                   ) : (
                     <div className="scroll-area max-h-[280px] overflow-auto rounded-lg border border-border-light">
@@ -324,10 +337,14 @@ export default function TaxesPage() {
         <form onSubmit={handleSlabSubmit} className="space-y-3">
           <Input label="Name" value={slabForm.name} onChange={(e) => setSlabForm({ ...slabForm, name: e.target.value })} required />
           <div className="grid grid-cols-2 gap-3">
-            <Input label="Min Salary" type="number" min="0" value={slabForm.minSalary} onChange={(e) => setSlabForm({ ...slabForm, minSalary: e.target.value })} required />
-            <Input label="Max Salary (empty = unlimited)" type="number" min="0" value={slabForm.maxSalary} onChange={(e) => setSlabForm({ ...slabForm, maxSalary: e.target.value })} />
+            <Input label="Min Annual Salary" type="number" min="0" value={slabForm.minSalary} onChange={(e) => setSlabForm({ ...slabForm, minSalary: e.target.value })} required />
+            <Input label="Max Annual Salary (empty = unlimited)" type="number" min="0" value={slabForm.maxSalary} onChange={(e) => setSlabForm({ ...slabForm, maxSalary: e.target.value })} />
           </div>
-          <Input label="Tax Rate (%)" type="number" min="0" max="100" step="0.01" value={slabForm.taxRate} onChange={(e) => setSlabForm({ ...slabForm, taxRate: e.target.value })} required />
+          <div className="grid grid-cols-2 gap-3">
+            <Input label="Tax Rate (%) — optional" type="number" min="0" max="100" step="0.01" value={slabForm.taxRate} onChange={(e) => setSlabForm({ ...slabForm, taxRate: e.target.value })} />
+            <Input label="Fixed Annual Tax — optional" type="number" min="0" step="0.01" value={slabForm.fixedTaxAmount} onChange={(e) => setSlabForm({ ...slabForm, fixedTaxAmount: e.target.value })} />
+          </div>
+          <p className="text-xs text-muted">Both fields are optional — leave empty to skip that tax component.</p>
           <Input label="Description" value={slabForm.description} onChange={(e) => setSlabForm({ ...slabForm, description: e.target.value })} />
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => setSlabModal(false)}>Cancel</Button>

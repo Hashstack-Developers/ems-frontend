@@ -183,7 +183,7 @@ export default function PayrollsPage() {
           header={
             <>
               <Th className="min-w-[180px]">Employee</Th>
-              <Th className="min-w-[140px]">Department</Th>
+              <Th className="min-w-[140px]">Stage</Th>
               <Th className="min-w-[220px]">Status</Th>
               {hasPermission('payrolls.generate') && <Th className="w-[160px]">Actions</Th>}
             </>
@@ -237,7 +237,7 @@ export default function PayrollsPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="font-semibold text-foreground">
-                      {p.employee?.firstName} {p.employee?.lastName}
+                      {p.employee?.name}
                       <span className="ml-2 font-mono text-xs text-muted-light">{p.employee?.employeeCode}</span>
                     </h3>
                     <p className="text-sm text-muted">
@@ -287,7 +287,7 @@ export default function PayrollsPage() {
         title="Delete Payroll"
         message={
           deleteTarget
-            ? `Delete payroll record for ${deleteTarget.employee?.firstName ?? ''} ${deleteTarget.employee?.lastName ?? ''}? This cannot be undone.`
+            ? `Delete payroll record for ${deleteTarget.employee?.name ?? ''}? This cannot be undone.`
             : ''
         }
         loading={deleting}

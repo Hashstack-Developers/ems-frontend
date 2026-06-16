@@ -29,7 +29,7 @@ export default function SalarySlipsPage() {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
-  const [departmentFilter, setDepartmentFilter] = useState('');
+  const [stageFilter, setStageFilter] = useState('');
   const [availability, setAvailability] = useState<SalarySlipAvailability[]>([]);
   const [selectedPayrollIds, setSelectedPayrollIds] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -62,19 +62,19 @@ export default function SalarySlipsPage() {
 
   useEffect(() => {
     setSelectedPayrollIds(new Set());
-  }, [month, year, departmentFilter]);
+  }, [month, year, stageFilter]);
 
-  const departments = useMemo(
-    () => Array.from(new Set(availability.map((item) => item.department))).sort(),
+  const stages = useMemo(
+    () => Array.from(new Set(availability.map((item) => item.stage).filter(Boolean))).sort(),
     [availability],
   );
 
   const visibleRows = useMemo(() => {
-    if (!departmentFilter) {
+    if (!stageFilter) {
       return availability;
     }
-    return availability.filter((item) => item.department === departmentFilter);
-  }, [availability, departmentFilter]);
+    return availability.filter((item) => item.stage === stageFilter);
+  }, [availability, stageFilter]);
 
   const downloadableRows = useMemo(
     () => visibleRows.filter((item) => item.canGenerateSlip && item.payrollId),
@@ -150,7 +150,7 @@ export default function SalarySlipsPage() {
         month,
         year,
         payrollIds: Array.from(selectedPayrollIds),
-        department: departmentFilter || undefined,
+        department: stageFilter || undefined,
       });
       showBulkDownloadToast(summary);
       setSelectedPayrollIds(new Set());
@@ -172,7 +172,7 @@ export default function SalarySlipsPage() {
       const summary = await downloadSalarySlipsZip({
         month,
         year,
-        department: departmentFilter || undefined,
+        department: stageFilter || undefined,
       });
       showBulkDownloadToast(summary);
       setSelectedPayrollIds(new Set());
@@ -244,12 +244,12 @@ export default function SalarySlipsPage() {
               options={[year - 1, year, year + 1].map((y) => ({ value: y, label: String(y) }))}
             />
             <Select
-              label="Department"
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
+              label="Stage"
+              value={stageFilter}
+              onChange={(e) => setStageFilter(e.target.value)}
               options={[
-                { value: '', label: 'All departments' },
-                ...departments.map((department) => ({ value: department, label: department })),
+                { value: '', label: 'All stages' },
+                ...stages.map((stage) => ({ value: stage, label: stage })),
               ]}
             />
             <div className="pb-1">
@@ -298,7 +298,7 @@ export default function SalarySlipsPage() {
               </Th>
             )}
             <Th className="min-w-[180px]">Employee</Th>
-            <Th className="min-w-[140px]">Department</Th>
+            <Th className="min-w-[140px]">Stage</Th>
             <Th className="w-[120px]">Payroll Status</Th>
             <Th className="min-w-[200px]">Slip Status</Th>
             {showActionsColumn && <Th className="w-[200px]">Actions</Th>}
@@ -332,7 +332,7 @@ export default function SalarySlipsPage() {
                   <p className="font-medium">{item.fullName}</p>
                   <p className="font-mono text-xs text-muted-light">{item.employeeCode}</p>
                 </Td>
-                <Td>{item.department}</Td>
+                <Td>{item.stage}</Td>
                 <Td>
                   {item.payrollStatus ? (
                     <span className="rounded-full bg-primary-soft px-2 py-0.5 text-xs font-medium text-primary-hover capitalize">
