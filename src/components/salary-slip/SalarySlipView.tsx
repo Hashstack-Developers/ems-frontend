@@ -32,10 +32,24 @@ export function SalarySlipView({ slip }: SalarySlipViewProps) {
         <div>
           <h3 className="mb-2 text-sm font-semibold text-neutral-800">Earnings</h3>
           <div className="space-y-1 text-sm">
-            <div className="flex justify-between">
-              <span className="text-neutral-600">Gross Salary</span>
-              <span className="font-medium">{formatCurrency(slip.earnings.grossSalary)}</span>
-            </div>
+            {slip.earnings.salaryDays != null &&
+            slip.earnings.basicSalary !== slip.earnings.grossSalary ? (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">Full Monthly Gross</span>
+                  <span className="font-medium">{formatCurrency(slip.earnings.basicSalary)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">Payable Gross ({slip.earnings.salaryDays} days)</span>
+                  <span className="font-medium">{formatCurrency(slip.earnings.grossSalary)}</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex justify-between">
+                <span className="text-neutral-600">Gross Salary</span>
+                <span className="font-medium">{formatCurrency(slip.earnings.grossSalary)}</span>
+              </div>
+            )}
           </div>
         </div>
 

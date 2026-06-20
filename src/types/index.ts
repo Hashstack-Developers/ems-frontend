@@ -57,9 +57,11 @@ export interface Employee {
   srNo?: string | null;
   name: string;
   fatherName?: string | null;
+  address?: string | null;
   designation: string;
   basicPayScale?: string | null;
   religion?: string | null;
+  disability?: 'no' | 'yes' | null;
   salaryTill?: string | null;
   dateOfJoining: string;
   contractExpiryDate?: string | null;
@@ -102,7 +104,7 @@ export interface Employee {
   annualIncomeTax202526?: number | null;
   grossSalaryWithTaxes?: number | null;
   incomeTaxMay2026?: number | null;
-  gpFund?: number | null;
+  gpFund?: string | null;
   previouslyCollectedGpFund?: number | null;
   gpfCollection?: number | null;
   netPayable?: number | null;
@@ -140,7 +142,7 @@ export interface PayrollDeduction {
   id: number;
   name: string;
   code: string;
-  category: 'income_tax' | 'sub_tax';
+  category: 'income_tax' | 'sub_tax' | 'gp_fund';
   amount: number;
   calculationType?: 'percentage' | 'fixed' | null;
   appliedRate?: number | null;
@@ -156,6 +158,7 @@ export interface Payroll {
   year: number;
   basicSalary: number;
   grossSalary: number;
+  salaryDays?: number | null;
   incomeTax: number;
   totalDeductions: number;
   netSalary: number;
@@ -230,7 +233,7 @@ export interface SalarySlip {
     email: string;
     dateOfJoining: string;
   };
-  earnings: { basicSalary: number; grossSalary: number };
+  earnings: { basicSalary: number; grossSalary: number; salaryDays?: number | null };
   deductions: Array<{
     name: string;
     code: string;
@@ -264,6 +267,14 @@ export interface GpFundRecord {
   updatedAt: string;
 }
 
+export interface GpFundScale {
+  id: number;
+  code: string;
+  value: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface PayrollMonthSummary {
   month: number;
   year: number;
@@ -274,6 +285,24 @@ export interface PayrollMonthSummary {
   totalNet: number;
 }
 
+export interface DashboardDeductionsMonthRow {
+  month: number;
+  year: number;
+  label: string;
+  totalTaxes: number;
+  totalGpFund: number;
+  totalCombined: number;
+}
+
+export interface DashboardTaxCollection {
+  totalCollected: number;
+  totalIncomeTax: number;
+  totalSubTaxes: number;
+  payrollRecords: number;
+  employeeCount: number;
+  byMonth: TaxOverviewMonthRow[];
+}
+
 export interface DashboardStats {
   employees: { total: number; active: number; inactive: number };
   taxes: {
@@ -282,12 +311,201 @@ export interface DashboardStats {
     subTaxes: number;
     activeSubTaxes: number;
   };
+  taxCollection: DashboardTaxCollection;
+  gpFund: {
+    totalCollected: number;
+    enrolledEmployees: number;
+    contributingRecords: number;
+    avgMonthlyContribution: number;
+    scaleCount: number;
+    byMonth: GpFundOverviewMonthRow[];
+  };
+  combined: {
+    totalTaxDeductions: number;
+    totalGpFund: number;
+    totalCombinedDeductions: number;
+  };
   payrollByMonth: PayrollMonthSummary[];
+  deductionsByMonth: DashboardDeductionsMonthRow[];
   payrollTotals: {
     monthsWithPayroll: number;
     count: number;
     totalGross: number;
     totalDeductions: number;
     totalNet: number;
+    totalTaxDeductions: number;
+    totalGpFund: number;
+    totalCombinedDeductions: number;
+  };
+}
+
+export interface TaxOverviewSummary {
+  payrollCount: number;
+  employeeCount: number;
+  totalGross: number;
+  totalIncomeTax: number;
+  totalSubTaxes: number;
+  totalDeductions: number;
+  totalNet: number;
+}
+
+export interface TaxOverviewMonthRow {
+  year: number;
+  month: number;
+  label: string;
+  payrollCount: number;
+  employeeCount: number;
+  totalGross: number;
+  totalIncomeTax: number;
+  totalSubTaxes: number;
+  totalDeductions: number;
+  totalNet: number;
+}
+
+export interface TaxOverviewYearRow {
+  year: number;
+  payrollCount: number;
+  employeeCount: number;
+  totalGross: number;
+  totalIncomeTax: number;
+  totalSubTaxes: number;
+  totalDeductions: number;
+  totalNet: number;
+}
+
+export interface TaxOverviewSlabRow {
+  taxSlabId: number | null;
+  taxSlabName: string;
+  payrollCount: number;
+  totalIncomeTax: number;
+  totalSubTaxes: number;
+  totalDeductions: number;
+}
+
+export interface TaxOverviewEmployeeRow {
+  employeeId: number;
+  employeeCode: string;
+  name: string;
+  designation: string;
+  payrollCount: number;
+  totalIncomeTax: number;
+  totalSubTaxes: number;
+  totalDeductions: number;
+  totalGross: number;
+}
+
+export interface TaxOverviewDeductionRow {
+  code: string;
+  name: string;
+  category: string;
+  amount: number;
+  count: number;
+}
+
+export interface TaxOverviewRecordRow {
+  payrollId: number;
+  employeeId: number;
+  employeeCode: string;
+  name: string;
+  designation: string;
+  month: number;
+  year: number;
+  label: string;
+  grossSalary: number;
+  incomeTax: number;
+  subTaxes: number;
+  totalDeductions: number;
+  netSalary: number;
+  taxSlabName: string | null;
+  appliedTaxRate: number | null;
+}
+
+export interface TaxOverviewData {
+  summary: TaxOverviewSummary;
+  byMonth: TaxOverviewMonthRow[];
+  byYear: TaxOverviewYearRow[];
+  bySlab: TaxOverviewSlabRow[];
+  byEmployee: TaxOverviewEmployeeRow[];
+  byDeduction: TaxOverviewDeductionRow[];
+  records: TaxOverviewRecordRow[];
+  availableYears: number[];
+  filters: {
+    employeeId: number | null;
+    years: number[];
+    months: number[];
+  };
+}
+
+export interface GpFundOverviewSummary {
+  payrollCount: number;
+  employeeCount: number;
+  enrolledEmployeeCount: number;
+  totalCollected: number;
+  avgMonthlyContribution: number;
+  scaleCount: number;
+}
+
+export interface GpFundOverviewMonthRow {
+  year: number;
+  month: number;
+  label: string;
+  payrollCount: number;
+  employeeCount: number;
+  totalCollected: number;
+}
+
+export interface GpFundOverviewYearRow {
+  year: number;
+  payrollCount: number;
+  employeeCount: number;
+  totalCollected: number;
+}
+
+export interface GpFundOverviewScaleRow {
+  scaleCode: string;
+  subscriptionValue: number;
+  payrollCount: number;
+  employeeCount: number;
+  totalCollected: number;
+}
+
+export interface GpFundOverviewEmployeeRow {
+  employeeId: number;
+  employeeCode: string;
+  name: string;
+  designation: string;
+  gpFundScale: string | null;
+  subscriptionValue: number;
+  payrollCount: number;
+  totalCollected: number;
+}
+
+export interface GpFundOverviewRecordRow {
+  payrollId: number;
+  employeeId: number;
+  employeeCode: string;
+  name: string;
+  designation: string;
+  month: number;
+  year: number;
+  label: string;
+  gpFundScale: string | null;
+  subscriptionValue: number;
+  gpFundAmount: number;
+  grossSalary: number;
+}
+
+export interface GpFundOverviewData {
+  summary: GpFundOverviewSummary;
+  byMonth: GpFundOverviewMonthRow[];
+  byYear: GpFundOverviewYearRow[];
+  byScale: GpFundOverviewScaleRow[];
+  byEmployee: GpFundOverviewEmployeeRow[];
+  records: GpFundOverviewRecordRow[];
+  availableYears: number[];
+  filters: {
+    employeeId: number | null;
+    years: number[];
+    months: number[];
   };
 }

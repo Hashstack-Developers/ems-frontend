@@ -9,8 +9,11 @@ import { useToast } from '@/contexts/ToastContext';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
+import { Select } from '@/components/ui/Select';
+import { TableFilters } from '@/components/ui/TableFilters';
 import { DataTableCard, PageContainer, PageHeader, Th, Td } from '@/components/layout/PageShell';
 import { TableBodySkeleton } from '@/components/ui/Skeletons';
+import { matchesSearch } from '@/lib/table-filter';
 import type { ApiResponse, Employee } from '@/types';
 import {
   EDITABLE_FORM_FIELDS,
@@ -23,6 +26,8 @@ import {
 } from './employee-form';
 import { EmployeeWizard } from './EmployeeWizard';
 
+type ModalMode = 'create' | 'edit' | 'view';
+
 export default function EmployeesPage() {
   const toast = useToast();
 
@@ -31,12 +36,18 @@ export default function EmployeesPage() {
   const [refetching, setRefetching] = useState(false);
   const [saving, setSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<ModalMode>('create');
   const [editing, setEditing] = useState<Employee | null>(null);
   const [form, setForm] = useState<EmployeeFormValues>(emptyForm);
   const [originalForm, setOriginalForm] = useState<EmployeeFormValues>(emptyForm);
   const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [discardConfirm, setDiscardConfirm] = useState(false);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [employmentTypeFilter, setEmploymentTypeFilter] = useState('');
+  const [designationFilter, setDesignationFilter] = useState('');
+  const [disabilityFilter, setDisabilityFilter] = useState('');
 
   const fetchEmployees = useCallback(async (options?: { refetch?: boolean }) => {
     const isRefetch = options?.refetch ?? false;
@@ -56,10 +67,12 @@ export default function EmployeesPage() {
   useEffect(() => { fetchEmployees(); }, [fetchEmployees]);
 
   const updateForm = (patch: Partial<EmployeeFormValues>) => {
+    if (modalMode === 'view') return;
     setForm((current) => applyDerivedFields({ ...current, ...patch }));
   };
 
   const openCreate = () => {
+    setModalMode('create');
     setEditing(null);
     setForm(emptyForm);
     setOriginalForm(emptyForm);
@@ -67,6 +80,16 @@ export default function EmployeesPage() {
   };
 
   const openEdit = (emp: Employee) => {
+    setModalMode('edit');
+    setEditing(emp);
+    const nextForm = employeeToForm(emp);
+    setForm(nextForm);
+    setOriginalForm(nextForm);
+    setModalOpen(true);
+  };
+
+  const openView = (emp: Employee) => {
+    setModalMode('view');
     setEditing(emp);
     const nextForm = employeeToForm(emp);
     setForm(nextForm);
@@ -75,7 +98,7 @@ export default function EmployeesPage() {
   };
 
   const fieldComparator = (
-    key: (typeof EDITABLE_FORM_FIELDS)[number],
+    key: keyof EmployeeFormValues,
     current: unknown,
     original: unknown,
   ) => {
@@ -84,21 +107,22 @@ export default function EmployeesPage() {
       const originalNum = original === '' ? null : Number(original);
       return currentNum === originalNum;
     }
-    if (key === 'mobile' || key === 'employmentType' || key === 'cnicNo' || key === 'srNo') {
+    if (key === 'mobile' || key === 'employmentType' || key === 'disability' || key === 'cnicNo' || key === 'address' || key === 'gpFund') {
       return optionalStringsEqual(String(current), String(original));
     }
     return current === original;
   };
 
   const isEditDirty = useMemo(() => {
-    if (!editing) return true;
+    if (!editing || modalMode !== 'edit') return true;
     return hasFieldChanges(form, originalForm, EDITABLE_FORM_FIELDS, { isEqual: fieldComparator });
-  }, [editing, form, originalForm]);
+  }, [editing, modalMode, form, originalForm]);
 
   const isFormDirty = useMemo(() => {
-    if (editing) return isEditDirty;
+    if (modalMode === 'view') return false;
+    if (modalMode === 'edit') return isEditDirty;
     return hasFieldChanges(form, emptyForm, EDITABLE_FORM_FIELDS, { isEqual: fieldComparator });
-  }, [editing, form, isEditDirty]);
+  }, [modalMode, editing, form, isEditDirty]);
 
   const closeModal = () => {
     if (isFormDirty) {
@@ -114,14 +138,15 @@ export default function EmployeesPage() {
   };
 
   const handleSubmit = async () => {
-    if (editing && !isEditDirty) {
+    if (modalMode !== 'edit' && modalMode !== 'create') return;
+    if (modalMode === 'edit' && !isEditDirty) {
       toast.info(NO_CHANGES_MESSAGE);
       return;
     }
 
     setSaving(true);
     try {
-      if (editing) {
+      if (modalMode === 'edit' && editing) {
         const changes = getChangedFields(form, originalForm, EDITABLE_FORM_FIELDS, { isEqual: fieldComparator });
         const merged = { ...originalForm, ...changes };
         await api.patch(`/employees/${editing.id}`, buildEmployeePayload(merged));
@@ -154,8 +179,42 @@ export default function EmployeesPage() {
     }
   };
 
-  const showActionsColumn = hasAnyPermission('employees.update', 'employees.delete');
-  const columnCount = showActionsColumn ? 7 : 6;
+  const showActionsColumn = hasAnyPermission('employees.view', 'employees.update', 'employees.delete');
+  const columnCount = showActionsColumn ? 8 : 7;
+
+  const designationOptions = useMemo(() => {
+    const unique = [...new Set(employees.map((emp) => emp.designation).filter(Boolean))].sort();
+    return [
+      { value: '', label: 'All designations' },
+      ...unique.map((designation) => ({ value: designation, label: designation })),
+    ];
+  }, [employees]);
+
+  const filteredEmployees = useMemo(() => {
+    return employees.filter((emp) => {
+      if (statusFilter && emp.status !== statusFilter) return false;
+      if (employmentTypeFilter && emp.employmentType !== employmentTypeFilter) return false;
+      if (designationFilter && emp.designation !== designationFilter) return false;
+      if (disabilityFilter && emp.disability !== disabilityFilter) return false;
+      return matchesSearch(
+        search,
+        emp.employeeCode,
+        emp.name,
+        emp.designation,
+        emp.email,
+        emp.cnicNo,
+        emp.basicPayScale,
+        emp.gpFund,
+      );
+    });
+  }, [employees, search, statusFilter, employmentTypeFilter, designationFilter, disabilityFilter]);
+
+  const modalTitle =
+    modalMode === 'view'
+      ? 'View Employee'
+      : modalMode === 'edit'
+        ? 'Edit Employee'
+        : 'Add Employee';
 
   return (
     <PageContainer fill>
@@ -167,30 +226,83 @@ export default function EmployeesPage() {
         actions={hasPermission('employees.create') ? <Button onClick={openCreate}>+ Add Employee</Button> : undefined}
       />
 
+      <TableFilters
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search by name, code, designation, email…"
+      >
+        <div className="w-full sm:w-36">
+          <Select
+            label="Status"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            options={[
+              { value: '', label: 'All statuses' },
+              { value: 'active', label: 'Active' },
+              { value: 'inactive', label: 'Inactive' },
+            ]}
+          />
+        </div>
+        <div className="w-full sm:w-36">
+          <Select
+            label="Employment"
+            value={employmentTypeFilter}
+            onChange={(e) => setEmploymentTypeFilter(e.target.value)}
+            options={[
+              { value: '', label: 'All types' },
+              { value: 'contract', label: 'Contract' },
+              { value: 'regular', label: 'Regular' },
+            ]}
+          />
+        </div>
+        <div className="w-full sm:w-44">
+          <Select
+            label="Designation"
+            value={designationFilter}
+            onChange={(e) => setDesignationFilter(e.target.value)}
+            options={designationOptions}
+          />
+        </div>
+        <div className="w-full sm:w-36">
+          <Select
+            label="Disability"
+            value={disabilityFilter}
+            onChange={(e) => setDisabilityFilter(e.target.value)}
+            options={[
+              { value: '', label: 'All' },
+              { value: 'no', label: 'No' },
+              { value: 'yes', label: 'Yes' },
+            ]}
+          />
+        </div>
+      </TableFilters>
+
       <DataTableCard
         header={
           <>
-            <Th className="w-[100px]">Code</Th>
-            <Th className="min-w-[160px]">Name</Th>
-            <Th className="min-w-[120px]">Designation</Th>
-            <Th className="w-[120px]">Gross Salary</Th>
-            <Th className="w-[90px]">Status</Th>
-            <Th className="w-[110px]">Joined</Th>
-            {showActionsColumn && <Th className="w-[160px]">Actions</Th>}
+            <Th className="w-[80px]">Sr No</Th>
+            <Th className="min-w-[160px] w-[160px]">Code</Th>
+            <Th className="min-w-[180px]">Name</Th>
+            <Th className="min-w-[150px]">Designation</Th>
+            <Th className="w-[140px]">Gross w/ Taxes</Th>
+            <Th className="w-[100px]">Status</Th>
+            <Th className="w-[120px]">Joined</Th>
+            {showActionsColumn && <Th className="w-[260px]">Actions</Th>}
           </>
         }
       >
         {loading || refetching ? (
           <TableBodySkeleton rows={8} cols={columnCount} />
-        ) : employees.length === 0 ? (
+        ) : filteredEmployees.length === 0 ? (
           <tr><td colSpan={columnCount} className="py-8 text-center text-muted-light">No employees found</td></tr>
         ) : (
-          employees.map((emp) => (
+          filteredEmployees.map((emp) => (
             <tr key={emp.id}>
-              <Td className="font-mono text-xs">{emp.employeeCode}</Td>
+              <Td className="font-mono text-xs">{emp.srNo ?? '—'}</Td>
+              <Td className="whitespace-nowrap font-mono text-xs">{emp.employeeCode}</Td>
               <Td className="font-medium">{emp.name}</Td>
               <Td>{emp.designation}</Td>
-              <Td>{formatCurrency(Number(emp.grossSalary ?? emp.basicPayDec2025 ?? 0))}</Td>
+              <Td>{formatCurrency(Number(emp.grossSalaryWithTaxes ?? emp.basicPayDec2025 ?? 0))}</Td>
               <Td>
                 <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${emp.status === 'active' ? 'bg-success-soft text-success' : 'bg-neutral-100 text-neutral-600'}`}>
                   {emp.status}
@@ -200,6 +312,9 @@ export default function EmployeesPage() {
               {showActionsColumn && (
               <Td>
                 <div className="flex flex-wrap gap-2">
+                  {hasPermission('employees.view') && (
+                    <Button size="sm" variant="secondary" onClick={() => openView(emp)}>View</Button>
+                  )}
                   {hasPermission('employees.update') && (
                     <Button size="sm" variant="secondary" onClick={() => openEdit(emp)}>Edit</Button>
                   )}
@@ -217,15 +332,16 @@ export default function EmployeesPage() {
       <Modal
         open={modalOpen}
         onClose={closeModal}
-        title={editing ? 'Edit Employee' : 'Add Employee'}
+        title={modalTitle}
         size="xl"
         scrollBody={false}
       >
         <EmployeeWizard
-          key={editing?.id ?? 'create'}
+          key={`${modalMode}-${editing?.id ?? 'create'}`}
           form={form}
           employeeCode={editing?.employeeCode}
-          isEditing={!!editing}
+          isEditing={modalMode === 'edit'}
+          isViewing={modalMode === 'view'}
           saving={saving}
           isDirty={isEditDirty}
           onUpdate={updateForm}

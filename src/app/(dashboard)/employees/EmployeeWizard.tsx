@@ -2,20 +2,25 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { CnicInput } from '@/components/ui/CnicInput';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import api from '@/lib/api';
 import {
   WIZARD_STEPS,
   validateStep,
+  previewEmployeeCode,
   type EmployeeFormValues,
   type StepErrors,
   type WizardStepId,
 } from './employee-form';
+import type { ApiResponse, GpFundScale } from '@/types';
 
 interface EmployeeWizardProps {
   form: EmployeeFormValues;
   employeeCode?: string;
   isEditing: boolean;
+  isViewing?: boolean;
   saving: boolean;
   isDirty: boolean;
   onUpdate: (patch: Partial<EmployeeFormValues>) => void;
@@ -64,6 +69,7 @@ export function EmployeeWizard({
   form,
   employeeCode,
   isEditing,
+  isViewing = false,
   saving,
   isDirty,
   onUpdate,
@@ -73,6 +79,10 @@ export function EmployeeWizard({
   const [currentStep, setCurrentStep] = useState<WizardStepId>(1);
   const [errors, setErrors] = useState<StepErrors>({});
   const [canCreate, setCanCreate] = useState(false);
+  const [gpFundScaleOptions, setGpFundScaleOptions] = useState<Array<{ value: string; label: string }>>([
+    { value: '', label: 'Select scale' },
+  ]);
+  const readOnly = isViewing;
 
   useEffect(() => {
     if (currentStep !== 6) {
@@ -84,11 +94,40 @@ export function EmployeeWizard({
     return () => window.clearTimeout(timer);
   }, [currentStep]);
 
+  useEffect(() => {
+    let ignore = false;
+
+    const loadGpFundScales = async () => {
+      try {
+        const { data } = await api.get<ApiResponse<GpFundScale[]>>('/gp-fund/scales');
+        if (ignore) return;
+        setGpFundScaleOptions([
+          { value: '', label: 'Select scale' },
+          ...data.data.map((scale) => ({
+            value: scale.code,
+            label: scale.code,
+          })),
+        ]);
+      } catch {
+        if (!ignore) {
+          setGpFundScaleOptions([{ value: '', label: 'Select scale' }]);
+        }
+      }
+    };
+
+    loadGpFundScales();
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
   const goNext = () => {
-    const stepErrors = validateStep(currentStep, form, { isEditing });
-    if (Object.keys(stepErrors).length > 0) {
-      setErrors(stepErrors);
-      return;
+    if (!isViewing) {
+      const stepErrors = validateStep(currentStep, form, { isEditing });
+      if (Object.keys(stepErrors).length > 0) {
+        setErrors(stepErrors);
+        return;
+      }
     }
     setErrors({});
     setCurrentStep((s) => Math.min(s + 1, 6) as WizardStepId);
@@ -100,7 +139,7 @@ export function EmployeeWizard({
   };
 
   const handleCreate = () => {
-    if (currentStep !== 6 || !canCreate) return;
+    if (currentStep !== 6 || !canCreate || isViewing) return;
 
     const stepErrors = validateStep(currentStep, form, { isEditing });
     if (Object.keys(stepErrors).length > 0) {
@@ -111,7 +150,7 @@ export function EmployeeWizard({
   };
 
   const handleFormKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
-    if (e.key !== 'Enter') return;
+    if (isViewing || e.key !== 'Enter') return;
     const target = e.target as HTMLElement;
     if (target.tagName === 'BUTTON' || target.tagName === 'TEXTAREA') return;
 
@@ -126,8 +165,22 @@ export function EmployeeWizard({
     min: '0',
     step: '0.01',
     value: form[key] as string,
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => onUpdate({ [key]: e.target.value }),
+    onChange: readOnly ? undefined : (e: React.ChangeEvent<HTMLInputElement>) => onUpdate({ [key]: e.target.value }),
     error: errors[key],
+    readOnly,
+    disabled: readOnly,
+  });
+
+  const text = (
+    key: keyof EmployeeFormValues,
+    props?: Partial<React.ComponentProps<typeof Input>>,
+  ) => ({
+    value: form[key] as string,
+    onChange: readOnly ? undefined : (e: React.ChangeEvent<HTMLInputElement>) => onUpdate({ [key]: e.target.value }),
+    error: errors[key],
+    readOnly,
+    disabled: readOnly,
+    ...props,
   });
 
   return (
@@ -141,33 +194,72 @@ export function EmployeeWizard({
       <div className="min-h-0 flex-1 overflow-y-auto pr-1">
       {currentStep === 1 && (
         <FormGrid>
-          <Input label="Sr No" value={form.srNo} onChange={(e) => onUpdate({ srNo: e.target.value })} error={errors.srNo} />
-          {isEditing && employeeCode && (
+          {isEditing && form.srNo ? (
+            <Input label="Sr No" value={form.srNo} readOnly disabled />
+          ) : (
+            <Input label="Sr No" value="Auto-generated on save" readOnly disabled />
+          )}
+          {(isEditing || isViewing) && employeeCode && (
             <Input label="Employee ID" value={employeeCode} readOnly disabled />
           )}
-          {!isEditing && (
-            <Input label="Employee ID" value="Auto-generated on save" readOnly disabled />
+          {!isEditing && !isViewing && (
+            <Input label="Employee ID" value={previewEmployeeCode(form.cnicNo)} readOnly disabled />
           )}
-          <Input label="Name" value={form.name} onChange={(e) => onUpdate({ name: e.target.value })} required error={errors.name} />
-          <Input label="Father Name" value={form.fatherName} onChange={(e) => onUpdate({ fatherName: e.target.value })} error={errors.fatherName} />
-          <Input label="Religion" value={form.religion} onChange={(e) => onUpdate({ religion: e.target.value })} />
-          <Input label="DOB" type="date" value={form.dateOfBirth} onChange={(e) => onUpdate({ dateOfBirth: e.target.value })} />
-          <Input label="Mobile" value={form.mobile} onChange={(e) => onUpdate({ mobile: e.target.value })} placeholder="03XXXXXXXXX" error={errors.mobile} />
-          <Input label="CNIC No" value={form.cnicNo} onChange={(e) => onUpdate({ cnicNo: e.target.value })} placeholder="XXXXX-XXXXXXX-X" error={errors.cnicNo} />
-          <Input label="E-Mail" type="email" value={form.email} onChange={(e) => onUpdate({ email: e.target.value })} required error={errors.email} />
-          <Input label="Account Number" value={form.accountNumber} onChange={(e) => onUpdate({ accountNumber: e.target.value })} error={errors.accountNumber} />
+          <Input label="Name" {...text('name')} required={!readOnly} />
+          <Input label="Father Name" {...text('fatherName')} />
+          <Input label="Religion" {...text('religion')} />
+          <Select
+            label="Disability"
+            value={form.disability}
+            onChange={(e) => onUpdate({ disability: e.target.value as EmployeeFormValues['disability'] })}
+            disabled={readOnly}
+            options={[
+              { value: '', label: 'Select' },
+              { value: 'no', label: 'No' },
+              { value: 'yes', label: 'Yes' },
+            ]}
+          />
+          <Input label="DOB" type="date" {...text('dateOfBirth')} />
+          <Input label="Mobile" {...text('mobile')} placeholder="03XXXXXXXXX" />
+          <div className="col-span-full sm:col-span-1">
+            <CnicInput
+              label="CNIC No"
+              value={form.cnicNo}
+              onChange={(value) => onUpdate({ cnicNo: value })}
+              error={errors.cnicNo}
+              disabled={readOnly}
+            />
+          </div>
+          <Input label="E-Mail" type="email" {...text('email')} required={!readOnly} />
+          <Input label="Account Number" {...text('accountNumber')} />
+          <div className="col-span-full space-y-1">
+            <label htmlFor="address" className="block text-sm font-medium text-neutral-700">
+              Address
+            </label>
+            <textarea
+              id="address"
+              rows={3}
+              value={form.address}
+              onChange={readOnly ? undefined : (e) => onUpdate({ address: e.target.value })}
+              readOnly={readOnly}
+              disabled={readOnly}
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary-soft disabled:cursor-not-allowed disabled:opacity-60"
+              placeholder="Residential address"
+            />
+          </div>
         </FormGrid>
       )}
 
       {currentStep === 2 && (
         <FormGrid>
-          <Input label="Designation" value={form.designation} onChange={(e) => onUpdate({ designation: e.target.value })} required error={errors.designation} />
-          <Input label="Basic Pay Scale" value={form.basicPayScale} onChange={(e) => onUpdate({ basicPayScale: e.target.value })} />
-          <Input label="Date Of Joining" type="date" value={form.dateOfJoining} onChange={(e) => onUpdate({ dateOfJoining: e.target.value })} required error={errors.dateOfJoining} />
+          <Input label="Designation" {...text('designation')} required={!readOnly} />
+          <Input label="Basic Pay Scale" {...text('basicPayScale')} />
+          <Input label="Date Of Joining" type="date" {...text('dateOfJoining')} required={!readOnly} />
           <Select
             label="Employment Type (Contract / Regular)"
             value={form.employmentType}
             onChange={(e) => onUpdate({ employmentType: e.target.value as EmployeeFormValues['employmentType'] })}
+            disabled={readOnly}
             options={[
               { value: '', label: 'Select type' },
               { value: 'contract', label: 'Contract' },
@@ -175,10 +267,10 @@ export function EmployeeWizard({
             ]}
           />
           {form.employmentType === 'contract' && (
-            <Input label="Contract Expiry Date" type="date" value={form.contractExpiryDate} onChange={(e) => onUpdate({ contractExpiryDate: e.target.value })} error={errors.contractExpiryDate} />
+            <Input label="Contract Expiry Date" type="date" {...text('contractExpiryDate')} />
           )}
           {form.employmentType === 'regular' && (
-            <Input label="Date of Regularization" type="date" value={form.dateOfRegularization} onChange={(e) => onUpdate({ dateOfRegularization: e.target.value })} error={errors.dateOfRegularization} />
+            <Input label="Date of Regularization" type="date" {...text('dateOfRegularization')} />
           )}
           <Input label="Date Of Retirement (Age 60)" type="date" value={form.dateOfRetirement} readOnly disabled />
           <Input label="Length Of Service" value={form.lengthOfService} readOnly disabled />
@@ -186,6 +278,7 @@ export function EmployeeWizard({
             label="Status"
             value={form.status}
             onChange={(e) => onUpdate({ status: e.target.value as 'active' | 'inactive' })}
+            disabled={readOnly}
             options={[
               { value: 'active', label: 'Active' },
               { value: 'inactive', label: 'Inactive' },
@@ -196,31 +289,8 @@ export function EmployeeWizard({
 
       {currentStep === 3 && (
         <FormGrid>
-          <Input label="Stage" value={form.stage} onChange={(e) => onUpdate({ stage: e.target.value })} />
-          <Input label="Salary Till" type="date" value={form.salaryTill} onChange={(e) => onUpdate({ salaryTill: e.target.value })} />
-          <Input label="Time Period" value={form.timePeriod} readOnly disabled />
-          <Input
-            label="Increment"
-            value={form.increment || '—'}
-            readOnly
-            disabled
-          />
-          <p className="col-span-full text-xs text-muted">
-            Increment is auto-calculated in Salary Structure (Step 4) as: Basic Pay 01-07-2026 minus Basic Pay 01-12-2025.
-          </p>
-        </FormGrid>
-      )}
-
-      {currentStep === 4 && (
-        <FormGrid>
           <Input label="Basic Pay 01-12-2025" {...num('basicPayDec2025')} />
           <Input label="Basic Pay 01-07-2026" {...num('basicPayJul2026')} />
-          <Input
-            label="Increment (Jul 2026 − Dec 2025)"
-            value={form.increment || '—'}
-            readOnly
-            disabled
-          />
           <Input label="Personal Allowance" {...num('personalAllowance')} />
           <Input label="H.R" {...num('hr')} />
           <Input label="C.A" {...num('ca')} />
@@ -241,6 +311,40 @@ export function EmployeeWizard({
         </FormGrid>
       )}
 
+      {currentStep === 4 && (
+        <FormGrid>
+          <Input label="Basic pay scale" {...text('stage')} />
+          <div>
+            <Input
+              label="Time Period (Payable Days)"
+              type="number"
+              min="1"
+              max="30"
+              value={form.timePeriod}
+              onChange={readOnly ? undefined : (e) => onUpdate({ timePeriod: e.target.value })}
+              placeholder="30 for full month"
+              error={errors.timePeriod}
+              readOnly={readOnly}
+              disabled={readOnly}
+            />
+            <p className="mt-1 text-xs text-muted">
+              Number of salary days for payroll (e.g. 27 pays 27/30 of monthly gross). Leave empty for a full 30-day month.
+            </p>
+          </div>
+          <div>
+            <Input
+              label="Increment"
+              value={form.increment || '—'}
+              readOnly
+              disabled
+            />
+            <p className="mt-1 text-xs text-muted">
+              Auto-calculated in Salary Structure (Step 3) as: Basic Pay 01-07-2026 minus Basic Pay 01-12-2025.
+            </p>
+          </div>
+        </FormGrid>
+      )}
+
       {currentStep === 5 && (
         <FormGrid>
           <Input label="Loan / Advance" {...num('loanAdvance')} />
@@ -250,7 +354,13 @@ export function EmployeeWizard({
           <Input label="Previous Deduction" {...num('previousDeduction')} />
           <Input label="Total Deducted Income Tax 2025-26" {...num('totalDeductedIncomeTax202526')} />
           <Input label="Annual Income Tax 2025-26" {...num('annualIncomeTax202526')} />
-          <Input label="GP Fund" {...num('gpFund')} />
+          <Select
+            label="GP fund scale"
+            value={form.gpFund}
+            onChange={(e) => onUpdate({ gpFund: e.target.value })}
+            disabled={readOnly}
+            options={gpFundScaleOptions}
+          />
           <Input label="Previously Collected GP Fund" {...num('previouslyCollectedGpFund')} />
           <Input label="GPF Collection" {...num('gpfCollection')} />
         </FormGrid>
@@ -258,16 +368,16 @@ export function EmployeeWizard({
 
       {currentStep === 6 && (
         <FormGrid>
-          <Input label="Gross Salary" {...num('grossSalary')} required />
-          <Input label="Gross Salary with Taxes" {...num('grossSalaryWithTaxes')} required />
-          <Input label="Net Payable" {...num('netPayable')} required />
+          <Input label="Gross Salary" {...num('grossSalary')} required={!readOnly} />
+          <Input label="Gross Salary with Taxes" {...num('grossSalaryWithTaxes')} required={!readOnly} />
+          <Input label="Net Payable" {...num('netPayable')} required={!readOnly} />
         </FormGrid>
       )}
       </div>
 
       <div className="mt-4 flex shrink-0 flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-between">
         <Button type="button" variant="secondary" onClick={onCancel}>
-          Cancel
+          {isViewing ? 'Close' : 'Cancel'}
         </Button>
         <div className="flex min-w-[9rem] justify-end gap-2">
           {currentStep > 1 && (
@@ -280,14 +390,16 @@ export function EmployeeWizard({
               Next
             </Button>
           ) : (
-            <Button
-              type="button"
-              loading={saving}
-              disabled={!canCreate || (isEditing && !isDirty)}
-              onClick={handleCreate}
-            >
-              {isEditing ? 'Update Employee' : 'Create Employee'}
-            </Button>
+            !isViewing && (
+              <Button
+                type="button"
+                loading={saving}
+                disabled={!canCreate || (isEditing && !isDirty)}
+                onClick={handleCreate}
+              >
+                {isEditing ? 'Update Employee' : 'Create Employee'}
+              </Button>
+            )
           )}
         </div>
       </div>

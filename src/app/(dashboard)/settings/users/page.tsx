@@ -10,8 +10,10 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
+import { TableFilters } from '@/components/ui/TableFilters';
 import { DataTableCard, Th, Td } from '@/components/layout/PageShell';
 import { TableBodySkeleton } from '@/components/ui/Skeletons';
+import { matchesSearch } from '@/lib/table-filter';
 import type { ApiResponse, RoleSummary, User } from '@/types';
 
 const emptyForm = {
@@ -33,6 +35,7 @@ export default function UsersSettingsPage() {
   const [form, setForm] = useState(emptyForm);
   const [originalForm, setOriginalForm] = useState(emptyForm);
   const [roleFilter, setRoleFilter] = useState('');
+  const [search, setSearch] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<User | null>(null);
   const [activateTarget, setActivateTarget] = useState<User | null>(null);
@@ -188,6 +191,11 @@ export default function UsersSettingsPage() {
   const showActionsColumn = hasAnyPermission('users.update', 'users.deactivate', 'users.delete');
   const columnCount = showActionsColumn ? 5 : 4;
 
+  const filteredUsers = useMemo(
+    () => users.filter((user) => matchesSearch(search, user.fullName, user.email, user.roleLabel, user.role)),
+    [users, search],
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -212,25 +220,31 @@ export default function UsersSettingsPage() {
         </div>
       </div>
 
+      <TableFilters
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Name, email, role…"
+      />
+
       <DataTableCard
-        minWidth={showActionsColumn ? 'min-w-[1040px]' : 'min-w-[760px]'}
+        minWidth={showActionsColumn ? 'min-w-[1280px]' : 'min-w-[960px]'}
         fill={false}
         header={
           <>
-            <Th className="min-w-[160px]">Name</Th>
-            <Th className="min-w-[220px]">Email</Th>
-            <Th className="min-w-[140px]">Role</Th>
-            <Th className="min-w-[90px]">Status</Th>
-            {showActionsColumn && <Th className="min-w-[280px]">Actions</Th>}
+            <Th className="min-w-[180px]">Name</Th>
+            <Th className="min-w-[260px]">Email</Th>
+            <Th className="min-w-[160px]">Role</Th>
+            <Th className="min-w-[100px]">Status</Th>
+            {showActionsColumn && <Th className="min-w-[320px]">Actions</Th>}
           </>
         }
       >
         {loading || refetching ? (
           <TableBodySkeleton rows={6} cols={columnCount} />
-        ) : users.length === 0 ? (
+        ) : filteredUsers.length === 0 ? (
           <tr><td colSpan={columnCount} className="py-8 text-center text-muted-light">No users found</td></tr>
         ) : (
-          users.map((user) => (
+          filteredUsers.map((user) => (
             <tr key={user.id}>
               <Td className="font-medium">{user.fullName}</Td>
               <Td>{user.email}</Td>

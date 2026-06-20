@@ -492,6 +492,170 @@ html.theme-transition::after {
     0 8px 24px color-mix(in srgb, var(--ems-primary) 8%, transparent);
 }
 
+.banner-gp-fund {
+  border: 1px solid color-mix(in srgb, var(--ems-success-soft) 65%, var(--ems-border));
+  background: linear-gradient(
+    135deg,
+    var(--ems-success-light) 0%,
+    var(--ems-surface) 48%,
+    color-mix(in srgb, var(--ems-success-light) 35%, var(--ems-surface)) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--ems-surface) 92%, white),
+    0 8px 24px color-mix(in srgb, var(--ems-success) 7%, transparent);
+}
+
+[data-theme="dark"] .banner-gp-fund {
+  border-color: color-mix(in srgb, var(--ems-success-soft) 55%, var(--ems-border));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ems-success-light) 75%, var(--ems-surface)) 0%,
+    var(--ems-surface) 52%,
+    color-mix(in srgb, var(--ems-success-soft) 28%, var(--ems-surface)) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--ems-success) 10%, transparent),
+    0 8px 24px color-mix(in srgb, black 22%, transparent);
+}
+
+.banner-gp-fund-value {
+  color: var(--ems-success-dark);
+}
+
+[data-theme="dark"] .banner-gp-fund-value {
+  color: var(--ems-success);
+}
+
+.banner-gp-fund-note {
+  color: var(--ems-muted);
+}
+
+.banner-tax {
+  border: 1px solid color-mix(in srgb, var(--ems-primary-soft) 70%, var(--ems-border));
+  background: linear-gradient(
+    135deg,
+    var(--ems-primary-light) 0%,
+    var(--ems-surface) 48%,
+    color-mix(in srgb, var(--ems-accent-light) 45%, var(--ems-surface)) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--ems-surface) 92%, white),
+    0 8px 24px color-mix(in srgb, var(--ems-primary) 8%, transparent);
+}
+
+[data-theme="dark"] .banner-tax {
+  border-color: color-mix(in srgb, var(--ems-primary-soft) 50%, var(--ems-border));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ems-primary-light) 75%, var(--ems-surface)) 0%,
+    var(--ems-surface) 52%,
+    color-mix(in srgb, var(--ems-accent-light) 25%, var(--ems-surface)) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--ems-primary) 10%, transparent),
+    0 8px 24px color-mix(in srgb, black 22%, transparent);
+}
+
+.banner-tax-value {
+  color: var(--ems-primary-dark);
+}
+
+[data-theme="dark"] .banner-tax-value {
+  color: var(--ems-primary);
+}
+
+.banner-combined {
+  border: 1px solid color-mix(in srgb, var(--ems-accent) 25%, var(--ems-border));
+  background: linear-gradient(
+    135deg,
+    var(--ems-accent-light) 0%,
+    var(--ems-surface) 50%,
+    var(--ems-primary-light) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--ems-surface) 92%, white),
+    0 8px 24px color-mix(in srgb, var(--ems-accent) 8%, transparent);
+}
+
+[data-theme="dark"] .banner-combined {
+  border-color: color-mix(in srgb, var(--ems-accent) 30%, var(--ems-border));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ems-accent-light) 60%, var(--ems-surface)) 0%,
+    var(--ems-surface) 55%,
+    color-mix(in srgb, var(--ems-primary-light) 40%, var(--ems-surface)) 100%
+  );
+}
+
+.banner-combined-value {
+  color: var(--ems-foreground);
+}
+
+.dashboard-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--ems-foreground);
+}
+
+.dashboard-section-subtitle {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--ems-muted);
+}
+
+.gp-fund-chip {
+  display: inline-flex;
+  border-radius: 0.375rem;
+  background: var(--ems-success-light);
+  color: var(--ems-success-dark);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ems-success-soft) 70%, var(--ems-border));
+}
+
+[data-theme="dark"] .gp-fund-chip {
+  background: color-mix(in srgb, var(--ems-success-light) 85%, var(--ems-surface));
+  color: var(--ems-success);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ems-success-soft) 50%, var(--ems-border));
+}
+
+.gp-fund-amount {
+  color: var(--ems-success-dark);
+  font-weight: 500;
+}
+
+[data-theme="dark"] .gp-fund-amount {
+  color: var(--ems-success);
+}
+
+.filter-chip-gp-fund-active {
+  background: var(--ems-success-dark);
+  color: white;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--ems-success-dark) 25%, transparent);
+}
+
+[data-theme="dark"] .filter-chip-gp-fund-active {
+  background: var(--ems-success);
+  color: var(--ems-background);
+  box-shadow: 0 1px 2px color-mix(in srgb, black 30%, transparent);
+}
+
+.filter-chip-inactive {
+  background: var(--ems-neutral-100);
+  color: var(--ems-neutral-600);
+}
+
+.filter-chip-inactive:hover {
+  background: var(--ems-neutral-200);
+}
+
+[data-theme="dark"] .filter-chip-inactive {
+  background: var(--ems-neutral-200);
+  color: var(--ems-neutral-500);
+}
+
+[data-theme="dark"] .filter-chip-inactive:hover {
+  background: var(--ems-neutral-300);
+}
+
 /* Theme toggle — animated sun / moon pill */
 .theme-toggle-skeleton {
   height: 2rem;
@@ -804,6 +968,14 @@ select:disabled {
   vertical-align: middle;
   text-align: left;
   color: var(--ems-foreground);
+}
+
+@media (min-width: 1024px) {
+  .data-table th,
+  .data-table td {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
 }
 
 [data-theme="dark"] .data-table thead tr,

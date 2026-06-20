@@ -34,6 +34,14 @@ export function getEnabledNavItems() {
 }
 
 export function getPageKeyFromPath(pathname: string): string | null {
+  if (pathname.startsWith('/taxes')) {
+    return 'taxes' in pagesConfig ? 'taxes' : null;
+  }
+
+  if (pathname.startsWith('/gp-fund')) {
+    return 'gpFund' in pagesConfig ? 'gpFund' : null;
+  }
+
   if (pathname.startsWith('/settings/users')) {
     return 'users' in pagesConfig ? 'users' : null;
   }
@@ -57,7 +65,14 @@ export function getDefaultRoute(): string {
   return enabled[0]?.href ?? '/settings/account';
 }
 
+const SETTINGS_PAGE_HREFS: Record<string, string> = {
+  users: '/settings/users',
+  roles: '/settings/roles',
+};
+
 export function getPageHref(key: string): string | null {
   if (!userHasPageAccess(key)) return null;
-  return pageNavItems.find((item) => item.key === key)?.href ?? null;
+  const navHref = pageNavItems.find((item) => item.key === key)?.href;
+  if (navHref) return navHref;
+  return SETTINGS_PAGE_HREFS[key] ?? null;
 }

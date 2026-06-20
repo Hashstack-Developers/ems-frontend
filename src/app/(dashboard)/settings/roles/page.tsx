@@ -226,9 +226,9 @@ export default function RolesSettingsPage() {
                 className="max-h-[220px] shrink-0"
                 header={
                   <>
-                    <Th className="min-w-[180px]">User</Th>
-                    <Th className="min-w-[200px]">Email</Th>
-                    <Th className="w-[120px]">Status</Th>
+                    <Th className="min-w-[200px]">User</Th>
+                    <Th className="min-w-[240px]">Email</Th>
+                    <Th className="w-[140px]">Status</Th>
                   </>
                 }
               >

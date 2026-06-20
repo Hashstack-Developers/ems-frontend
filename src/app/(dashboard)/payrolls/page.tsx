@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import api, { getErrorMessage } from '@/lib/api';
 import { formatCurrency, formatDeductionRate, MONTHS } from '@/lib/format';
 import { hasPermission } from '@/lib/permissions';
@@ -8,6 +8,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
+import { TableFilters } from '@/components/ui/TableFilters';
 import {
   DataTableCard,
   EmptyState,
@@ -20,6 +21,7 @@ import {
   Td,
 } from '@/components/layout/PageShell';
 import { PayrollListSkeleton, StatBannerSkeleton } from '@/components/ui/Skeletons';
+import { matchesSearch } from '@/lib/table-filter';
 import type { ApiResponse, Payroll, PayrollGenerationResult, PayrollGenerationStatus } from '@/types';
 
 export default function PayrollsPage() {
@@ -36,6 +38,7 @@ export default function PayrollsPage() {
   const [generatingEmployeeId, setGeneratingEmployeeId] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Payroll | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [search, setSearch] = useState('');
 
   const fetchPayrolls = useCallback(async (options?: { refetch?: boolean }) => {
     const isRefetch = options?.refetch ?? false;
@@ -121,11 +124,28 @@ export default function PayrollsPage() {
   const missingCount = generationStatus.filter((item) => item.canGenerate).length;
   const coveredCount = generationStatus.length - missingCount;
 
+  const filteredPayrolls = useMemo(
+    () =>
+      payrolls.filter((p) =>
+        matchesSearch(
+          search,
+          p.employee?.name,
+          p.employee?.employeeCode,
+          p.employee?.designation,
+          p.taxSlabName,
+        ),
+      ),
+    [payrolls, search],
+  );
+
+  const getGpFundAmount = (payroll: Payroll) =>
+    payroll.deductions?.find((d) => d.code === 'GP_FUND')?.amount ?? null;
+
   return (
     <PageContainer fill>
       <PageHeader
         title="Payrolls"
-        subtitle="Generate and view payroll with automated tax calculations"
+        subtitle="Generate and view payroll with automated tax and GP fund deductions"
         onRefetch={() => fetchPayrolls({ refetch: true })}
         refetching={refetching}
         actions={
@@ -182,10 +202,10 @@ export default function PayrollsPage() {
           className="mb-4 shrink-0"
           header={
             <>
-              <Th className="min-w-[180px]">Employee</Th>
-              <Th className="min-w-[140px]">Stage</Th>
-              <Th className="min-w-[220px]">Status</Th>
-              {hasPermission('payrolls.generate') && <Th className="w-[160px]">Actions</Th>}
+              <Th className="min-w-[200px]">Employee</Th>
+              <Th className="min-w-[160px]">Stage</Th>
+              <Th className="min-w-[260px]">Status</Th>
+              {hasPermission('payrolls.generate') && <Th className="w-[180px]">Actions</Th>}
             </>
           }
         >
@@ -231,8 +251,27 @@ export default function PayrollsPage() {
             }
           />
         ) : (
+          <>
+            <TableFilters
+              search={search}
+              onSearchChange={setSearch}
+              searchPlaceholder="Employee name, code, designation…"
+            />
+            {filteredPayrolls.length === 0 ? (
+              <EmptyState
+                icon="🔍"
+                title="No matching payroll records"
+                description="Try adjusting your search."
+              />
+            ) : (
           <ScrollableList className="space-y-4">
-            {payrolls.map((p) => (
+            {filteredPayrolls.map((p) => {
+              const fullGross = Number(p.basicSalary);
+              const payableGross = Number(p.grossSalary);
+              const isProrated = p.salaryDays != null && payableGross !== fullGross;
+              const gpFundAmount = getGpFundAmount(p);
+
+              return (
               <div key={p.id} className="card-modern p-5 sm:p-6">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -254,9 +293,22 @@ export default function PayrollsPage() {
                     )}
                   </div>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-                  <div><p className="text-xs text-muted">Gross</p><p className="font-medium">{formatCurrency(Number(p.grossSalary))}</p></div>
+                <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+                  {isProrated ? (
+                    <>
+                      <div><p className="text-xs text-muted">Full Monthly Gross</p><p className="font-medium">{formatCurrency(fullGross)}</p></div>
+                      <div>
+                        <p className="text-xs text-muted">Payable Gross ({p.salaryDays} days)</p>
+                        <p className="font-medium">{formatCurrency(payableGross)}</p>
+                      </div>
+                    </>
+                  ) : (
+                    <div><p className="text-xs text-muted">Gross With Taxes</p><p className="font-medium">{formatCurrency(payableGross)}</p></div>
+                  )}
                   <div><p className="text-xs text-muted">Income Tax</p><p className="font-medium text-danger">{formatCurrency(Number(p.incomeTax))}</p></div>
+                  {gpFundAmount != null && (
+                    <div><p className="text-xs text-muted">GP Fund</p><p className="gp-fund-amount font-medium">{formatCurrency(Number(gpFundAmount))}</p></div>
+                  )}
                   <div><p className="text-xs text-muted">Total Deductions</p><p className="font-medium text-danger">{formatCurrency(Number(p.totalDeductions))}</p></div>
                   <div><p className="text-xs text-muted">Net Salary</p><p className="font-medium text-success">{formatCurrency(Number(p.netSalary))}</p></div>
                 </div>
@@ -264,8 +316,14 @@ export default function PayrollsPage() {
                   <div className="mt-3 flex flex-wrap gap-2">
                     {p.deductions.map((d) => {
                       const rateLabel = formatDeductionRate(d);
+                      const isGpFund = d.code === 'GP_FUND';
                       return (
-                        <span key={d.id} className="rounded-lg bg-neutral-100 px-2 py-1 text-xs text-neutral-600">
+                        <span
+                          key={d.id}
+                          className={`rounded-lg px-2 py-1 text-xs ${
+                            isGpFund ? 'gp-fund-chip font-medium' : 'bg-neutral-100 text-neutral-600'
+                          }`}
+                        >
                           {d.code}
                           {rateLabel && <span className="text-muted-light"> ({rateLabel})</span>}
                           : {formatCurrency(Number(d.amount))}
@@ -275,8 +333,11 @@ export default function PayrollsPage() {
                   </div>
                 )}
               </div>
-            ))}
+            );
+            })}
           </ScrollableList>
+            )}
+          </>
         )}
       </div>
 

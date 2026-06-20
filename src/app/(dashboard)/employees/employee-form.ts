@@ -3,8 +3,8 @@ import type { Employee } from '@/types';
 export const WIZARD_STEPS = [
   { id: 1, title: 'Personal Information' },
   { id: 2, title: 'Employment Information' },
-  { id: 3, title: 'Scale / Service Progression' },
-  { id: 4, title: 'Salary Structure' },
+  { id: 3, title: 'Salary Structure' },
+  { id: 4, title: 'Scale / Service Progression' },
   { id: 5, title: 'Deductions & Taxation' },
   { id: 6, title: 'Salary Summary' },
 ] as const;
@@ -15,7 +15,9 @@ export type EmployeeFormValues = {
   srNo: string;
   name: string;
   fatherName: string;
+  address: string;
   religion: string;
+  disability: '' | 'no' | 'yes';
   dateOfBirth: string;
   mobile: string;
   cnicNo: string;
@@ -33,7 +35,6 @@ export type EmployeeFormValues = {
   stage: string;
   timePeriod: string;
   increment: string;
-  salaryTill: string;
   basicPayDec2025: string;
   basicPayJul2026: string;
   personalAllowance: string;
@@ -97,7 +98,6 @@ export const NUMERIC_FORM_FIELDS = [
   'annualIncomeTax202526',
   'grossSalaryWithTaxes',
   'incomeTaxMay2026',
-  'gpFund',
   'previouslyCollectedGpFund',
   'gpfCollection',
   'netPayable',
@@ -105,10 +105,11 @@ export const NUMERIC_FORM_FIELDS = [
 ] as const satisfies readonly (keyof EmployeeFormValues)[];
 
 export const EDITABLE_FORM_FIELDS = [
-  'srNo',
   'name',
   'fatherName',
+  'address',
   'religion',
+  'disability',
   'dateOfBirth',
   'mobile',
   'cnicNo',
@@ -125,7 +126,7 @@ export const EDITABLE_FORM_FIELDS = [
   'status',
   'stage',
   'timePeriod',
-  'salaryTill',
+  'gpFund',
   ...NUMERIC_FORM_FIELDS,
 ] as const satisfies readonly (keyof EmployeeFormValues)[];
 
@@ -135,7 +136,9 @@ export const emptyForm: EmployeeFormValues = {
   srNo: '',
   name: '',
   fatherName: '',
+  address: '',
   religion: '',
+  disability: '',
   dateOfBirth: '',
   mobile: '',
   cnicNo: '',
@@ -153,7 +156,6 @@ export const emptyForm: EmployeeFormValues = {
   stage: '',
   timePeriod: '',
   increment: '',
-  salaryTill: '',
   basicPayDec2025: '',
   basicPayJul2026: '',
   personalAllowance: '',
@@ -190,6 +192,14 @@ export const emptyForm: EmployeeFormValues = {
 
 const CNIC_REGEX = /^\d{5}-\d{7}-\d$/;
 const MOBILE_REGEX = /^(\+92|0)?3\d{9}$/;
+const TIME_PERIOD_REGEX = /^(?:[1-9]|[12][0-9]|30)?$/;
+const EMPLOYEE_CODE_PREFIX = 'WCLA';
+
+export function previewEmployeeCode(cnicNo: string): string {
+  const digits = cnicNo.replace(/\D/g, '');
+  if (digits.length !== 13) return 'Auto-generated from CNIC on save';
+  return `${EMPLOYEE_CODE_PREFIX}-${digits.slice(5, 12)}`;
+}
 
 function computeRetirementDate(dateOfBirth: string): string {
   if (!dateOfBirth) return '';
@@ -217,14 +227,6 @@ function computeLengthOfService(dateOfJoining: string): string {
   return formatDuration(new Date(dateOfJoining), new Date());
 }
 
-function computeTimePeriod(dateOfJoining: string, salaryTill: string): string {
-  if (!dateOfJoining) return '';
-  const start = new Date(dateOfJoining);
-  const end = salaryTill ? new Date(salaryTill) : new Date();
-  if (end < start) return '';
-  return formatDuration(start, end);
-}
-
 function computeIncrement(basicPayDec2025: string, basicPayJul2026: string): string {
   const dec = parseFloat(basicPayDec2025);
   const jul = parseFloat(basicPayJul2026);
@@ -240,9 +242,6 @@ export function applyDerivedFields(form: EmployeeFormValues): EmployeeFormValues
   const lengthOfService = form.dateOfJoining
     ? computeLengthOfService(form.dateOfJoining)
     : form.lengthOfService;
-  const timePeriod = form.dateOfJoining
-    ? computeTimePeriod(form.dateOfJoining, form.salaryTill)
-    : form.timePeriod;
   const hasBasicPays =
     form.basicPayDec2025.trim() !== '' && form.basicPayJul2026.trim() !== '';
   const increment = hasBasicPays
@@ -253,7 +252,6 @@ export function applyDerivedFields(form: EmployeeFormValues): EmployeeFormValues
     ...form,
     dateOfRetirement,
     lengthOfService,
-    timePeriod,
     increment,
   };
 }
@@ -288,7 +286,9 @@ export function validateStep(
     if (mobile && !MOBILE_REGEX.test(mobile)) {
       errors.mobile = 'Enter a valid Pakistani mobile number (e.g. 03XXXXXXXXX)';
     }
-    if (derived.cnicNo.trim() && !CNIC_REGEX.test(derived.cnicNo.trim())) {
+    if (!derived.cnicNo.trim()) {
+      errors.cnicNo = 'CNIC is required';
+    } else if (!CNIC_REGEX.test(derived.cnicNo.trim())) {
       errors.cnicNo = 'CNIC must be in format XXXXX-XXXXXXX-X';
     }
   }
@@ -298,9 +298,9 @@ export function validateStep(
     if (!derived.dateOfJoining) errors.dateOfJoining = 'Date of joining is required';
   }
 
-  if (step === 4) {
+  if (step === 3) {
     for (const key of NUMERIC_FORM_FIELDS) {
-      if (['deduction', 'arrears', 'loanAdvance', 'previousDeduction', 'totalDeductedIncomeTax202526', 'annualIncomeTax202526', 'grossSalaryWithTaxes', 'incomeTaxMay2026', 'gpFund', 'previouslyCollectedGpFund', 'gpfCollection', 'netPayable', 'grossSalary'].includes(key)) {
+      if (['deduction', 'arrears', 'loanAdvance', 'previousDeduction', 'totalDeductedIncomeTax202526', 'annualIncomeTax202526', 'grossSalaryWithTaxes', 'incomeTaxMay2026', 'previouslyCollectedGpFund', 'gpfCollection', 'netPayable', 'grossSalary'].includes(key)) {
         continue;
       }
       const err = validateNumericField(derived[key], key);
@@ -308,11 +308,17 @@ export function validateStep(
     }
   }
 
+  if (step === 4) {
+    if (derived.timePeriod.trim() && !TIME_PERIOD_REGEX.test(derived.timePeriod.trim())) {
+      errors.timePeriod = 'Enter payable days between 1 and 30 (leave empty for full month)';
+    }
+  }
+
   if (step === 5) {
     const step5Numeric: (keyof EmployeeFormValues)[] = [
       'loanAdvance', 'deduction', 'arrears', 'previousDeduction',
       'totalDeductedIncomeTax202526', 'annualIncomeTax202526',
-      'incomeTaxMay2026', 'gpFund', 'previouslyCollectedGpFund', 'gpfCollection',
+      'incomeTaxMay2026', 'previouslyCollectedGpFund', 'gpfCollection',
     ];
     for (const key of step5Numeric) {
       const err = validateNumericField(derived[key], key);
@@ -351,7 +357,9 @@ export function employeeToForm(emp: Employee): EmployeeFormValues {
     srNo: emp.srNo ?? '',
     name: emp.name,
     fatherName: emp.fatherName ?? '',
+    address: emp.address ?? '',
     religion: emp.religion ?? '',
+    disability: emp.disability ?? '',
     dateOfBirth: emp.dateOfBirth ?? '',
     mobile: emp.mobile ?? '',
     cnicNo: emp.cnicNo ?? '',
@@ -369,7 +377,6 @@ export function employeeToForm(emp: Employee): EmployeeFormValues {
     stage: emp.stage ?? '',
     timePeriod: emp.timePeriod ?? '',
     increment: str(emp.increment),
-    salaryTill: emp.salaryTill ?? '',
     basicPayDec2025: str(emp.basicPayDec2025),
     basicPayJul2026: str(emp.basicPayJul2026),
     personalAllowance: str(emp.personalAllowance),
@@ -396,7 +403,7 @@ export function employeeToForm(emp: Employee): EmployeeFormValues {
     totalDeductedIncomeTax202526: str(emp.totalDeductedIncomeTax202526),
     annualIncomeTax202526: str(emp.annualIncomeTax202526),
     incomeTaxMay2026: str(emp.incomeTaxMay2026),
-    gpFund: str(emp.gpFund),
+    gpFund: emp.gpFund ?? '',
     previouslyCollectedGpFund: str(emp.previouslyCollectedGpFund),
     gpfCollection: str(emp.gpfCollection),
     grossSalary: str(emp.grossSalary),
@@ -419,10 +426,11 @@ function parseOptionalString(value: string): string | undefined {
 export function buildEmployeePayload(form: EmployeeFormValues) {
   const derived = applyDerivedFields(form);
   const payload: Record<string, unknown> = {
-    srNo: parseOptionalString(derived.srNo),
     name: derived.name.trim(),
     fatherName: parseOptionalString(derived.fatherName),
+    address: parseOptionalString(derived.address),
     religion: parseOptionalString(derived.religion),
+    disability: derived.disability || undefined,
     dateOfBirth: parseOptionalString(derived.dateOfBirth),
     mobile: (() => {
       const normalized = normalizeMobile(derived.mobile);
@@ -442,7 +450,7 @@ export function buildEmployeePayload(form: EmployeeFormValues) {
     status: derived.status,
     stage: parseOptionalString(derived.stage),
     timePeriod: parseOptionalString(derived.timePeriod),
-    salaryTill: parseOptionalString(derived.salaryTill),
+    gpFund: parseOptionalString(derived.gpFund),
   };
 
   for (const key of NUMERIC_FORM_FIELDS) {

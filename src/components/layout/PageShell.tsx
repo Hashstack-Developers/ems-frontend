@@ -14,7 +14,7 @@ export function PageContainer({
 }) {
   return (
     <div
-      className={`mx-auto w-full max-w-7xl ${fill ? 'flex min-h-0 flex-1 flex-col' : ''} ${className}`}
+      className={`mx-auto w-full max-w-none ${fill ? 'flex min-h-0 flex-1 flex-col' : ''} ${className}`}
     >
       {children}
     </div>
@@ -90,7 +90,7 @@ export function SectionCard({
 export function DataTableCard({
   header,
   children,
-  minWidth = 'min-w-[880px]',
+  minWidth = 'min-w-[1080px]',
   className = '',
   fill = true,
 }: {

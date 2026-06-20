@@ -24,6 +24,11 @@ const colorMap = {
     text: 'text-accent-dark',
     glow: 'hover:shadow-[0_12px_32px_rgba(232,160,69,0.2)]',
   },
+  teal: {
+    bg: 'from-teal-500 to-emerald-600',
+    text: 'text-teal-600',
+    glow: 'hover:shadow-[0_12px_32px_rgba(20,184,166,0.18)]',
+  },
 };
 
 interface StatCardProps {
@@ -76,10 +81,20 @@ export function DashboardContentSkeleton() {
           <div key={i} className="skeleton h-28 rounded-2xl" />
         ))}
       </div>
-      <div className="skeleton h-24 rounded-2xl" />
+      <div className="skeleton h-32 rounded-2xl" />
+      <div className="skeleton h-28 rounded-2xl" />
+      <div className="grid gap-6 xl:grid-cols-2">
+        <div className="skeleton h-64 rounded-2xl" />
+        <div className="skeleton h-64 rounded-2xl" />
+      </div>
+      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+        <div className="skeleton h-72 rounded-2xl" />
+        <div className="skeleton h-72 rounded-2xl" />
+        <div className="skeleton h-72 rounded-2xl" />
+      </div>
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="skeleton h-72 rounded-2xl" />
-        <div className="skeleton h-72 rounded-2xl" />
+        <div className="skeleton h-64 rounded-2xl" />
+        <div className="skeleton h-64 rounded-2xl" />
       </div>
       <div className="skeleton h-80 rounded-2xl" />
     </div>

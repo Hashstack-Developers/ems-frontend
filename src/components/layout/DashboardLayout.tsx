@@ -33,7 +33,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     <div className="h-screen overflow-hidden bg-background">
       <Sidebar />
       <main className="flex h-screen flex-col overflow-hidden pt-14 lg:ml-64 lg:pt-0">
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 sm:p-5 lg:p-6">
           <PageGuard>{children}</PageGuard>
         </div>
       </main>

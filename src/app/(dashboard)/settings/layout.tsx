@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { PageContainer, PageHeader } from '@/components/layout/PageShell';
-import { getPageHref } from '@/lib/pages';
+import { userHasPageAccess } from '@/lib/pages';
 import { SettingsActionsProvider, useSettingsActions } from './SettingsActionsContext';
 
 const settingsLinks = [
@@ -16,7 +16,7 @@ function SettingsLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { triggerRefetch, refetching } = useSettingsActions();
   const showRefetch = pathname === '/settings/account';
-  const visibleLinks = settingsLinks.filter((link) => getPageHref(link.pageKey));
+  const visibleLinks = settingsLinks.filter((link) => userHasPageAccess(link.pageKey));
 
   return (
     <PageContainer>
@@ -28,7 +28,7 @@ function SettingsLayoutContent({ children }: { children: React.ReactNode }) {
       />
 
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-        <nav className="card-modern shrink-0 p-2 lg:w-52">
+        <nav className="card-modern shrink-0 p-2 lg:w-44">
           <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-light">
             Menu
           </p>

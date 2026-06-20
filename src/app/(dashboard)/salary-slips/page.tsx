@@ -12,6 +12,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
+import { TableFilters } from '@/components/ui/TableFilters';
 import { SalarySlipView } from '@/components/salary-slip/SalarySlipView';
 import {
   DataTableCard,
@@ -21,6 +22,7 @@ import {
   Td,
 } from '@/components/layout/PageShell';
 import { TableBodySkeleton } from '@/components/ui/Skeletons';
+import { matchesSearch } from '@/lib/table-filter';
 import type { ApiResponse, SalarySlip, SalarySlipAvailability } from '@/types';
 
 export default function SalarySlipsPage() {
@@ -30,6 +32,7 @@ export default function SalarySlipsPage() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [stageFilter, setStageFilter] = useState('');
+  const [search, setSearch] = useState('');
   const [availability, setAvailability] = useState<SalarySlipAvailability[]>([]);
   const [selectedPayrollIds, setSelectedPayrollIds] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -70,11 +73,11 @@ export default function SalarySlipsPage() {
   );
 
   const visibleRows = useMemo(() => {
-    if (!stageFilter) {
-      return availability;
-    }
-    return availability.filter((item) => item.stage === stageFilter);
-  }, [availability, stageFilter]);
+    return availability.filter((item) => {
+      if (stageFilter && item.stage !== stageFilter) return false;
+      return matchesSearch(search, item.fullName, item.employeeCode, item.stage, item.designation);
+    });
+  }, [availability, stageFilter, search]);
 
   const downloadableRows = useMemo(
     () => visibleRows.filter((item) => item.canGenerateSlip && item.payrollId),
@@ -281,6 +284,12 @@ export default function SalarySlipsPage() {
         }
       />
 
+      <TableFilters
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Employee name, code, stage…"
+      />
+
       <DataTableCard
         header={
           <>
@@ -297,11 +306,11 @@ export default function SalarySlipsPage() {
                 />
               </Th>
             )}
-            <Th className="min-w-[180px]">Employee</Th>
-            <Th className="min-w-[140px]">Stage</Th>
-            <Th className="w-[120px]">Payroll Status</Th>
-            <Th className="min-w-[200px]">Slip Status</Th>
-            {showActionsColumn && <Th className="w-[200px]">Actions</Th>}
+            <Th className="min-w-[200px]">Employee</Th>
+            <Th className="min-w-[160px]">Stage</Th>
+            <Th className="w-[140px]">Payroll Status</Th>
+            <Th className="min-w-[240px]">Slip Status</Th>
+            {showActionsColumn && <Th className="w-[240px]">Actions</Th>}
           </>
         }
       >

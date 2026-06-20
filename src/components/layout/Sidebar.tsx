@@ -4,17 +4,76 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { clearAuth, getUser } from '@/lib/auth';
-import { getEnabledNavItems, getPageHref } from '@/lib/pages';
+import { getEnabledNavItems } from '@/lib/pages';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+
+type NavItem = ReturnType<typeof getEnabledNavItems>[number];
+
+function NavGroup({
+  item,
+  pathname,
+  onNavigate,
+}: {
+  item: NavItem & { children: NonNullable<NavItem['children']> };
+  pathname: string;
+  onNavigate?: () => void;
+}) {
+  const groupBasePath = item.href.replace(/\/[^/]+$/, '') || item.href;
+  const groupActive = pathname === groupBasePath || pathname.startsWith(`${groupBasePath}/`);
+  const [expanded, setExpanded] = useState(groupActive);
+
+  return (
+    <div className="space-y-1">
+      <button
+        type="button"
+        onClick={() => setExpanded((open) => !open)}
+        className={`flex w-full cursor-pointer items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 lg:gap-3 ${
+          groupActive
+            ? 'bg-primary-light text-primary shadow-sm ring-1 ring-primary-soft'
+            : 'text-neutral-600 hover:bg-neutral-50 hover:text-foreground'
+        }`}
+        aria-expanded={expanded}
+      >
+        <span className={`nav-icon-3d ${groupActive ? 'nav-icon-3d-active' : ''}`}>{item.icon}</span>
+        <span className="flex-1 truncate text-left">{item.label}</span>
+        <span className={`text-xs text-muted transition-transform ${expanded ? 'rotate-180' : ''}`}>▾</span>
+      </button>
+      {expanded && (
+        <div className="ml-4 space-y-0.5 border-l border-border pl-2">
+          {item.children.map((child) => {
+            const childActive = pathname === child.href || pathname.startsWith(`${child.href}/`);
+            return (
+              <Link
+                key={child.key}
+                href={child.href}
+                onClick={onNavigate}
+                className={`flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all duration-200 ${
+                  childActive
+                    ? 'bg-primary-light/70 font-medium text-primary'
+                    : 'text-neutral-600 hover:bg-neutral-50 hover:text-foreground'
+                }`}
+              >
+                <span className={`nav-icon-3d text-xs ${childActive ? 'nav-icon-3d-active' : ''}`}>{child.icon}</span>
+                <span className="truncate">{child.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const navItems = getEnabledNavItems();
-  const mainItems = navItems.filter((item) => item.section !== 'admin');
-  const adminItems = navItems.filter((item) => item.section === 'admin');
 
-  const renderLink = (item: (typeof navItems)[number]) => {
+  const renderLink = (item: NavItem) => {
+    if (item.children?.length) {
+      return <NavGroup key={item.key} item={{ ...item, children: item.children }} pathname={pathname} onNavigate={onNavigate} />;
+    }
+
     const active =
       pathname === item.href ||
       (item.key === 'settings' && pathname.startsWith('/settings') && item.href === '/settings') ||
@@ -37,19 +96,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
     );
   };
 
-  return (
-    <>
-      {mainItems.map(renderLink)}
-      {adminItems.length > 0 && (
-        <>
-          <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-light">
-            Administration
-          </p>
-          {adminItems.map(renderLink)}
-        </>
-      )}
-    </>
-  );
+  return <>{navItems.map(renderLink)}</>;
 }
 
 export function Sidebar() {
@@ -57,7 +104,6 @@ export function Sidebar() {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
-  const settingsAccountHref = getPageHref('settings') ? '/settings/account' : null;
 
   const handleLogout = () => {
     setLogoutOpen(false);
@@ -118,15 +164,6 @@ export function Sidebar() {
           <p className="truncate text-xs text-muted">{user?.email ?? ''}</p>
           {user?.role && (
             <p className="mt-1 truncate text-[11px] capitalize text-muted-light">{user.roleLabel ?? user.role}</p>
-          )}
-          {settingsAccountHref && (
-            <Link
-              href={settingsAccountHref}
-              onClick={() => setMobileOpen(false)}
-              className="mt-3 block w-full cursor-pointer rounded-xl border border-border px-3 py-2 text-center text-sm text-neutral-600 transition-all hover:border-primary-soft hover:bg-neutral-50 hover:text-primary"
-            >
-              Account settings
-            </Link>
           )}
           <button
             type="button"
