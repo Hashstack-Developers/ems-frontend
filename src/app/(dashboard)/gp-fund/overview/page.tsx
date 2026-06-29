@@ -174,7 +174,7 @@ export default function GpFundOverviewPage() {
     <PageContainer fill>
       <PageHeader
         title="GP Fund Overview"
-        subtitle="Monthly GP Fund subscriptions collected from payroll periods by employee scale"
+        subtitle="Monthly GP Fund subscriptions and markups collected from payroll periods by employee scale"
         onRefetch={() => fetchOverview({ refetch: true })}
         refetching={refetching}
       />
@@ -278,30 +278,45 @@ export default function GpFundOverviewPage() {
       ) : (
         <>
           <div className="banner-gp-fund mb-6 shrink-0 rounded-2xl p-5 sm:p-6">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 sm:gap-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 sm:gap-6">
               <StatBannerItem
                 label="Total GP Fund Collected"
                 value={formatCurrency(data.summary.totalCollected)}
                 valueClassName="banner-gp-fund-value"
               />
               <StatBannerItem
-                label="Enrolled Employees"
-                value={data.summary.enrolledEmployeeCount}
+                label="Base Subscriptions"
+                value={formatCurrency(data.summary.totalBaseCollected)}
                 valueClassName="banner-gp-fund-value"
               />
               <StatBannerItem
-                label="Avg Monthly"
-                value={formatCurrency(data.summary.avgMonthlyContribution)}
+                label="Monthly Markup"
+                value={formatCurrency(data.summary.totalMonthlyMarkup)}
                 valueClassName="banner-gp-fund-value"
               />
               <StatBannerItem
-                label="Payroll Records"
-                value={data.summary.payrollCount}
+                label="Annual Markup"
+                value={formatCurrency(data.summary.totalAnnualMarkup)}
+                valueClassName="banner-gp-fund-value"
+              />
+              <StatBannerItem
+                label="Advance Installments"
+                value={formatCurrency(data.summary.totalAdvanceInstallments)}
+                valueClassName="banner-gp-fund-value"
+              />
+              <StatBannerItem
+                label="Outstanding Advances"
+                value={formatCurrency(data.advances.totalOutstanding)}
+                valueClassName="banner-gp-fund-value"
+              />
+              <StatBannerItem
+                label="Active Advances"
+                value={data.advances.activeCount}
                 valueClassName="banner-gp-fund-value"
               />
             </div>
             <p className="banner-gp-fund-note mt-4 text-sm">
-              {data.summary.scaleCount} active scale(s) · deductions applied at payroll generation from employee GP fund scale
+              {data.summary.scaleCount} active scale(s) · monthly markup {Number(data.summary.monthlyMarkupRate)}% · annual markup {Number(data.summary.annualMarkupRate)}% · {data.advances.activeCount} active advance(s) · {formatCurrency(data.advances.totalOutstanding)} outstanding
             </p>
           </div>
 
@@ -357,22 +372,25 @@ export default function GpFundOverviewPage() {
             {tableView === 'records' && (
               <DataTableCard
                 fill={false}
-                minWidth="min-w-[1100px]"
+                minWidth="min-w-[1400px]"
                 header={
                   <>
                     <Th className="min-w-[160px]">Employee</Th>
                     <Th className="w-[130px]">Period</Th>
                     <Th className="w-[100px]">Scale</Th>
-                    <Th className="w-[140px]">Subscription</Th>
-                    <Th className="w-[130px]">GP Fund</Th>
+                    <Th className="w-[120px]">Base</Th>
+                    <Th className="w-[120px]">Monthly Markup</Th>
+                    <Th className="w-[120px]">Annual Markup</Th>
+                    <Th className="w-[120px]">Advance</Th>
+                    <Th className="w-[120px]">Total GP Fund</Th>
                     <Th className="w-[120px]">Gross</Th>
                   </>
                 }
               >
                 {refetching ? (
-                  <TableBodySkeleton rows={6} cols={6} />
+                  <TableBodySkeleton rows={6} cols={9} />
                 ) : filteredRecords.length === 0 ? (
-                  <tr><td colSpan={6} className="py-8 text-center text-muted-light">No matching records</td></tr>
+                  <tr><td colSpan={9} className="py-8 text-center text-muted-light">No matching records</td></tr>
                 ) : (
                   filteredRecords.map((row) => (
                     <tr key={row.payrollId}>
@@ -386,7 +404,10 @@ export default function GpFundOverviewPage() {
                           {row.gpFundScale}
                         </span>
                       </Td>
-                      <Td>{formatCurrency(row.subscriptionValue)}</Td>
+                      <Td>{formatCurrency(row.gpFundBaseAmount)}</Td>
+                      <Td>{formatCurrency(row.monthlyMarkupAmount)}</Td>
+                      <Td>{formatCurrency(row.annualMarkupAmount)}</Td>
+                      <Td>{formatCurrency(row.advanceInstallmentAmount)}</Td>
                       <Td className="gp-fund-amount">{formatCurrency(row.gpFundAmount)}</Td>
                       <Td>{formatCurrency(row.grossSalary)}</Td>
                     </tr>
@@ -398,7 +419,7 @@ export default function GpFundOverviewPage() {
             {tableView === 'employees' && (
               <DataTableCard
                 fill={false}
-                minWidth="min-w-[960px]"
+                minWidth="min-w-[1100px]"
                 header={
                   <>
                     <Th className="min-w-[180px]">Employee</Th>
@@ -406,14 +427,17 @@ export default function GpFundOverviewPage() {
                     <Th className="w-[90px]">Scale</Th>
                     <Th className="w-[120px]">Subscription</Th>
                     <Th className="w-[90px]">Records</Th>
+                    <Th className="w-[120px]">Base</Th>
+                    <Th className="w-[120px]">Monthly Markup</Th>
+                    <Th className="w-[120px]">Annual Markup</Th>
                     <Th className="w-[140px]">Total Contributed</Th>
                   </>
                 }
               >
                 {refetching ? (
-                  <TableBodySkeleton rows={6} cols={6} />
+                  <TableBodySkeleton rows={6} cols={9} />
                 ) : filteredEmployees.length === 0 ? (
-                  <tr><td colSpan={6} className="py-8 text-center text-muted-light">No matching employees</td></tr>
+                  <tr><td colSpan={9} className="py-8 text-center text-muted-light">No matching employees</td></tr>
                 ) : (
                   filteredEmployees.map((row) => (
                     <tr key={row.employeeId}>
@@ -425,6 +449,9 @@ export default function GpFundOverviewPage() {
                       <Td>{row.gpFundScale}</Td>
                       <Td>{formatCurrency(row.subscriptionValue)}</Td>
                       <Td>{row.payrollCount}</Td>
+                      <Td>{formatCurrency(row.totalBaseCollected)}</Td>
+                      <Td>{formatCurrency(row.totalMonthlyMarkup)}</Td>
+                      <Td>{formatCurrency(row.totalAnnualMarkup)}</Td>
                       <Td className="gp-fund-amount">{formatCurrency(row.totalCollected)}</Td>
                     </tr>
                   ))
@@ -435,21 +462,24 @@ export default function GpFundOverviewPage() {
             {tableView === 'scales' && (
               <DataTableCard
                 fill={false}
-                minWidth="min-w-[760px]"
+                minWidth="min-w-[980px]"
                 header={
                   <>
                     <Th className="min-w-[120px]">Scale</Th>
                     <Th className="w-[150px]">Monthly Subscription</Th>
                     <Th className="w-[100px]">Employees</Th>
                     <Th className="w-[100px]">Records</Th>
+                    <Th className="w-[120px]">Base</Th>
+                    <Th className="w-[120px]">Monthly Markup</Th>
+                    <Th className="w-[120px]">Annual Markup</Th>
                     <Th className="w-[150px]">Total Collected</Th>
                   </>
                 }
               >
                 {refetching ? (
-                  <TableBodySkeleton rows={5} cols={5} />
+                  <TableBodySkeleton rows={5} cols={8} />
                 ) : filteredScales.length === 0 ? (
-                  <tr><td colSpan={5} className="py-8 text-center text-muted-light">No matching scales</td></tr>
+                  <tr><td colSpan={8} className="py-8 text-center text-muted-light">No matching scales</td></tr>
                 ) : (
                   filteredScales.map((row) => (
                     <tr key={row.scaleCode}>
@@ -461,6 +491,9 @@ export default function GpFundOverviewPage() {
                       <Td>{formatCurrency(row.subscriptionValue)}</Td>
                       <Td>{row.employeeCount}</Td>
                       <Td>{row.payrollCount}</Td>
+                      <Td>{formatCurrency(row.totalBaseCollected)}</Td>
+                      <Td>{formatCurrency(row.totalMonthlyMarkup)}</Td>
+                      <Td>{formatCurrency(row.totalAnnualMarkup)}</Td>
                       <Td className="gp-fund-amount">{formatCurrency(row.totalCollected)}</Td>
                     </tr>
                   ))

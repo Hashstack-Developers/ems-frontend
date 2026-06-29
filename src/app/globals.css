@@ -405,6 +405,177 @@ html.theme-transition::after {
 
 @media print {
   .no-print { display: none !important; }
+
+  body * {
+    visibility: hidden;
+  }
+
+  #salary-slip-print,
+  #salary-slip-print * {
+    visibility: visible;
+  }
+
+  #salary-slip-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    background: white;
+    color: black;
+  }
+}
+
+/* WCLA salary slip layout */
+.wcla-salary-slip {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 1.25rem;
+  background: white;
+  color: #111;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.wcla-slip-header {
+  display: grid;
+  grid-template-columns: 4rem 1fr 4rem;
+  align-items: start;
+  gap: 0.75rem;
+  text-align: center;
+}
+
+.wcla-slip-logo-img {
+  width: 3.5rem;
+  height: 3.5rem;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.wcla-slip-logo {
+  width: 3.5rem;
+  height: 3.5rem;
+  border: 2px solid #1a1a1a;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.wcla-slip-header-text h1 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.wcla-slip-header-text p {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin: 0.15rem 0 0;
+}
+
+.wcla-slip-header-text h2 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-transform: uppercase;
+  margin: 0.35rem 0 0;
+}
+
+.wcla-slip-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.wcla-slip-employee-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.2rem 1rem;
+  margin-top: 0.75rem;
+  font-size: 0.65rem;
+}
+
+.wcla-slip-field {
+  display: flex;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.wcla-slip-field-label {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.wcla-slip-field-label::after {
+  content: ':';
+}
+
+.wcla-slip-field-value {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.wcla-slip-table {
+  border: 1px solid #000;
+}
+
+.wcla-slip-pay-table {
+  border: 1px solid #000;
+  table-layout: fixed;
+}
+
+.wcla-slip-col-label {
+  width: 38%;
+}
+
+.wcla-slip-col-amount {
+  width: 12%;
+}
+
+.wcla-slip-th,
+.wcla-slip-td {
+  border: 1px solid #000;
+  padding: 0.2rem 0.35rem;
+  vertical-align: top;
+}
+
+.wcla-slip-th {
+  font-weight: 700;
+  background: #f5f5f5;
+}
+
+.wcla-slip-notes {
+  font-size: 0.65rem;
+}
+
+.wcla-slip-notes ul {
+  margin: 0;
+}
+
+@media print {
+  .wcla-salary-slip {
+    max-width: none;
+    padding: 0.5in;
+    font-size: 10pt;
+  }
+
+  .wcla-slip-th {
+    background: transparent;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }
 
 /* Modern surface + 3D utilities */

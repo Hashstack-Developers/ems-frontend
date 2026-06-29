@@ -86,6 +86,7 @@ export default function LoginPage() {
           <Input
             label="Password"
             type="password"
+            passwordToggle
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required

@@ -339,6 +339,7 @@ export default function EmployeesPage() {
         <EmployeeWizard
           key={`${modalMode}-${editing?.id ?? 'create'}`}
           form={form}
+          employeeId={editing?.id}
           employeeCode={editing?.employeeCode}
           isEditing={modalMode === 'edit'}
           isViewing={modalMode === 'view'}

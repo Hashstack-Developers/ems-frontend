@@ -49,6 +49,7 @@ export type EmployeeFormValues = {
   overtimeAllowance: string;
   integratedAllowance: string;
   wa: string;
+  computerAllowance: string;
   specialAllowance: string;
   socialSecurityBenefit: string;
   specialPay: string;
@@ -85,6 +86,7 @@ export const NUMERIC_FORM_FIELDS = [
   'overtimeAllowance',
   'integratedAllowance',
   'wa',
+  'computerAllowance',
   'specialAllowance',
   'specialPay',
   'mphilSpecialAllowance',
@@ -170,6 +172,7 @@ export const emptyForm: EmployeeFormValues = {
   overtimeAllowance: '',
   integratedAllowance: '',
   wa: '',
+  computerAllowance: '',
   specialAllowance: '',
   socialSecurityBenefit: '',
   specialPay: '',
@@ -392,6 +395,7 @@ export function employeeToForm(emp: Employee): EmployeeFormValues {
     overtimeAllowance: str(emp.overtimeAllowance),
     integratedAllowance: str(emp.integratedAllowance),
     wa: str(emp.wa),
+    computerAllowance: str(emp.computerAllowance),
     specialAllowance: str(emp.specialAllowance),
     socialSecurityBenefit: str(emp.socialSecurityBenefit),
     specialPay: str(emp.specialPay),

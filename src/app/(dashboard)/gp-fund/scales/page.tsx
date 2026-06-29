@@ -177,8 +177,8 @@ export default function GpFundScalesPage() {
       />
 
       {loading || refetching ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {Array.from({ length: 9 }).map((_, index) => (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+          {Array.from({ length: 12 }).map((_, index) => (
             <div key={index} className="card-modern space-y-4 p-4">
               <SkeletonBar className="h-5 w-16" />
               <SkeletonBar className="h-10 w-full" />
@@ -196,7 +196,7 @@ export default function GpFundScalesPage() {
           description="Try adjusting your search or add a new scale."
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
           {filteredScales.map((scale) => (
             <div key={scale.id} className="card-modern space-y-4 p-4">
               <div className="flex items-center justify-between gap-3">

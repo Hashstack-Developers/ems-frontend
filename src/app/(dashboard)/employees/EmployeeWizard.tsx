@@ -6,6 +6,7 @@ import { CnicInput } from '@/components/ui/CnicInput';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import api from '@/lib/api';
+import { formatCurrency } from '@/lib/format';
 import {
   WIZARD_STEPS,
   validateStep,
@@ -14,10 +15,11 @@ import {
   type StepErrors,
   type WizardStepId,
 } from './employee-form';
-import type { ApiResponse, GpFundScale } from '@/types';
+import type { ApiResponse, GpFundAdvance, GpFundScale } from '@/types';
 
 interface EmployeeWizardProps {
   form: EmployeeFormValues;
+  employeeId?: number;
   employeeCode?: string;
   isEditing: boolean;
   isViewing?: boolean;
@@ -67,6 +69,7 @@ function FormGrid({ children }: { children: React.ReactNode }) {
 
 export function EmployeeWizard({
   form,
+  employeeId,
   employeeCode,
   isEditing,
   isViewing = false,
@@ -82,6 +85,7 @@ export function EmployeeWizard({
   const [gpFundScaleOptions, setGpFundScaleOptions] = useState<Array<{ value: string; label: string }>>([
     { value: '', label: 'Select scale' },
   ]);
+  const [gpFundAdvance, setGpFundAdvance] = useState<GpFundAdvance | null>(null);
   const readOnly = isViewing;
 
   useEffect(() => {
@@ -120,6 +124,31 @@ export function EmployeeWizard({
       ignore = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!employeeId || currentStep !== 5) {
+      setGpFundAdvance(null);
+      return;
+    }
+
+    let ignore = false;
+
+    const loadGpFundAdvance = async () => {
+      try {
+        const { data } = await api.get<ApiResponse<GpFundAdvance | null>>(
+          `/gp-fund/advances/employee/${employeeId}/active`,
+        );
+        if (!ignore) setGpFundAdvance(data.data);
+      } catch {
+        if (!ignore) setGpFundAdvance(null);
+      }
+    };
+
+    loadGpFundAdvance();
+    return () => {
+      ignore = true;
+    };
+  }, [employeeId, currentStep]);
 
   const goNext = () => {
     if (!isViewing) {
@@ -272,7 +301,7 @@ export function EmployeeWizard({
           {form.employmentType === 'regular' && (
             <Input label="Date of Regularization" type="date" {...text('dateOfRegularization')} />
           )}
-          <Input label="Date Of Retirement (Age 60)" type="date" value={form.dateOfRetirement} readOnly disabled />
+          <Input label="Date Of Retirement/Superannuation (Age 60)" type="date" value={form.dateOfRetirement} readOnly disabled />
           <Input label="Length Of Service" value={form.lengthOfService} readOnly disabled />
           <Select
             label="Status"
@@ -303,6 +332,7 @@ export function EmployeeWizard({
           <Input label="Overtime Allowance" {...num('overtimeAllowance')} />
           <Input label="Integrated Allowance" {...num('integratedAllowance')} />
           <Input label="Washing Allowance" {...num('wa')} />
+          <Input label="Computer Allowance" {...num('computerAllowance')} />
           <Input label="Special Allowance" {...num('specialAllowance')} />
           <Input label="Social Security Benefit" {...num('socialSecurityBenefit')} />
           <Input label="Special Pay" {...num('specialPay')} />
@@ -361,6 +391,26 @@ export function EmployeeWizard({
             disabled={readOnly}
             options={gpFundScaleOptions}
           />
+          {(isEditing || isViewing) && employeeId && (
+            <div className="col-span-full rounded-xl border border-border bg-neutral-50 p-4 sm:col-span-2">
+              <p className="text-sm font-medium text-neutral-800">GP Fund Advance</p>
+              {gpFundAdvance ? (
+                <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
+                  <p><span className="text-muted">Status:</span> <span className="capitalize">{gpFundAdvance.status}</span></p>
+                  <p><span className="text-muted">Advance:</span> {formatCurrency(gpFundAdvance.advanceAmount)}</p>
+                  <p><span className="text-muted">Monthly installment:</span> {formatCurrency(gpFundAdvance.monthlyInstallment)}</p>
+                  <p><span className="text-muted">Repaid:</span> {formatCurrency(gpFundAdvance.amountRepaid)}</p>
+                  <p><span className="text-muted">Remaining:</span> {formatCurrency(gpFundAdvance.remainingBalance)}</p>
+                  <p><span className="text-muted">Progress:</span> {gpFundAdvance.installmentsPaid}/{gpFundAdvance.installmentMonths} months</p>
+                  <p className="sm:col-span-2 text-xs text-muted">
+                    Assign or manage advances from GP Fund → GP Advances. Regular GP fund still deducts each payroll month.
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-muted">No active GP Fund advance for this employee.</p>
+              )}
+            </div>
+          )}
           <Input label="Previously Collected GP Fund" {...num('previouslyCollectedGpFund')} />
           <Input label="GPF Collection" {...num('gpfCollection')} />
         </FormGrid>

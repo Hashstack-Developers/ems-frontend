@@ -52,6 +52,8 @@ export const pageNavItems: ReadonlyArray<{
     children: [
       { key: 'gpFundOverview', href: '/gp-fund/overview', label: 'Overview', icon: '📘' },
       { key: 'gpFundScales', href: '/gp-fund/scales', label: 'GP Scales', icon: '🧮' },
+      { key: 'gpFundMarkups', href: '/gp-fund/markups', label: 'GP Markups', icon: '📊' },
+      { key: 'gpFundAdvances', href: '/gp-fund/advances', label: 'GP Advances', icon: '💳' },
     ],
   },
   { key: 'reports', href: '/reports', label: 'Reports', icon: '📄', section: 'main' },

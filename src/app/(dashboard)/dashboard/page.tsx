@@ -151,17 +151,24 @@ export default function DashboardPage() {
             <div className="shrink-0">
               <DashboardSectionHeader
                 title="GP Fund Collection"
-                subtitle="Monthly subscriptions from employee GP fund scales"
+                subtitle="Base subscriptions plus monthly and annual markups from payroll"
               />
               {hasGpFundData ? (
                 <>
                   <div className="banner-gp-fund rounded-2xl p-5 sm:p-6">
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:gap-6">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
                       <StatBannerItem label="Total Collected" value={formatCurrency(stats.gpFund.totalCollected)} valueClassName="banner-gp-fund-value" />
+                      <StatBannerItem label="Base Subscriptions" value={formatCurrency(stats.gpFund.totalBaseCollected)} valueClassName="banner-gp-fund-value" />
+                      <StatBannerItem label="Monthly Markup" value={formatCurrency(stats.gpFund.totalMonthlyMarkup)} valueClassName="banner-gp-fund-value" />
+                      <StatBannerItem label="Annual Markup" value={formatCurrency(stats.gpFund.totalAnnualMarkup)} valueClassName="banner-gp-fund-value" />
+                      <StatBannerItem label="Advance Installments" value={formatCurrency(stats.gpFund.totalAdvanceInstallments)} valueClassName="banner-gp-fund-value" />
+                      <StatBannerItem label="Outstanding Advances" value={formatCurrency(stats.gpFund.advances.totalOutstanding)} valueClassName="banner-gp-fund-value" />
+                      <StatBannerItem label="Active Advances" value={stats.gpFund.advances.activeCount} valueClassName="banner-gp-fund-value" />
                       <StatBannerItem label="Enrolled Employees" value={stats.gpFund.enrolledEmployees} valueClassName="banner-gp-fund-value" />
-                      <StatBannerItem label="Avg Monthly" value={formatCurrency(stats.gpFund.avgMonthlyContribution)} valueClassName="banner-gp-fund-value" />
-                      <StatBannerItem label="Active Scales" value={stats.gpFund.scaleCount} valueClassName="banner-gp-fund-value" />
                     </div>
+                    <p className="banner-gp-fund-note mt-4 text-sm">
+                      Markup rates: {Number(stats.gpFund.monthlyMarkupRate)}% monthly · {Number(stats.gpFund.annualMarkupRate)}% annual · {stats.gpFund.advances.activeCount} active advance(s)
+                    </p>
                   </div>
                   {stats.gpFund.byMonth.length > 0 && (
                     <div className="mt-4">

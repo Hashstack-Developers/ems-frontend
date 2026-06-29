@@ -22,6 +22,7 @@ import {
 } from '@/components/layout/PageShell';
 import { PayrollListSkeleton, StatBannerSkeleton } from '@/components/ui/Skeletons';
 import { matchesSearch } from '@/lib/table-filter';
+import { getGpFundBreakdownFromPayroll, isGpFundDeductionCode } from '@/constants/gp-fund';
 import type { ApiResponse, Payroll, PayrollGenerationResult, PayrollGenerationStatus } from '@/types';
 
 export default function PayrollsPage() {
@@ -138,8 +139,8 @@ export default function PayrollsPage() {
     [payrolls, search],
   );
 
-  const getGpFundAmount = (payroll: Payroll) =>
-    payroll.deductions?.find((d) => d.code === 'GP_FUND')?.amount ?? null;
+  const getGpFundBreakdown = (payroll: Payroll) =>
+    getGpFundBreakdownFromPayroll(payroll.deductions);
 
   return (
     <PageContainer fill>
@@ -269,7 +270,8 @@ export default function PayrollsPage() {
               const fullGross = Number(p.basicSalary);
               const payableGross = Number(p.grossSalary);
               const isProrated = p.salaryDays != null && payableGross !== fullGross;
-              const gpFundAmount = getGpFundAmount(p);
+              const gpFund = getGpFundBreakdown(p);
+              const hasGpFund = gpFund.totalAmount > 0;
 
               return (
               <div key={p.id} className="card-modern p-5 sm:p-6">
@@ -306,8 +308,19 @@ export default function PayrollsPage() {
                     <div><p className="text-xs text-muted">Gross With Taxes</p><p className="font-medium">{formatCurrency(payableGross)}</p></div>
                   )}
                   <div><p className="text-xs text-muted">Income Tax</p><p className="font-medium text-danger">{formatCurrency(Number(p.incomeTax))}</p></div>
-                  {gpFundAmount != null && (
-                    <div><p className="text-xs text-muted">GP Fund</p><p className="gp-fund-amount font-medium">{formatCurrency(Number(gpFundAmount))}</p></div>
+                  {hasGpFund && (
+                    <div>
+                      <p className="text-xs text-muted">GP Fund Total</p>
+                      <p className="gp-fund-amount font-medium">{formatCurrency(gpFund.totalAmount)}</p>
+                      {(gpFund.monthlyMarkupAmount > 0 || gpFund.annualMarkupAmount > 0 || gpFund.advanceInstallmentAmount > 0) && (
+                        <p className="mt-0.5 text-[11px] text-muted-light">
+                          Base {formatCurrency(gpFund.baseAmount)}
+                          {gpFund.monthlyMarkupAmount > 0 && ` · M ${formatCurrency(gpFund.monthlyMarkupAmount)}`}
+                          {gpFund.annualMarkupAmount > 0 && ` · Y ${formatCurrency(gpFund.annualMarkupAmount)}`}
+                          {gpFund.advanceInstallmentAmount > 0 && ` · Adv ${formatCurrency(gpFund.advanceInstallmentAmount)}`}
+                        </p>
+                      )}
+                    </div>
                   )}
                   <div><p className="text-xs text-muted">Total Deductions</p><p className="font-medium text-danger">{formatCurrency(Number(p.totalDeductions))}</p></div>
                   <div><p className="text-xs text-muted">Net Salary</p><p className="font-medium text-success">{formatCurrency(Number(p.netSalary))}</p></div>
@@ -316,7 +329,7 @@ export default function PayrollsPage() {
                   <div className="mt-3 flex flex-wrap gap-2">
                     {p.deductions.map((d) => {
                       const rateLabel = formatDeductionRate(d);
-                      const isGpFund = d.code === 'GP_FUND';
+                      const isGpFund = isGpFundDeductionCode(d.code);
                       return (
                         <span
                           key={d.id}

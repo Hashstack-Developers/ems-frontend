@@ -91,6 +91,7 @@ export interface Employee {
   overtimeAllowance?: number | null;
   integratedAllowance?: number | null;
   wa?: number | null;
+  computerAllowance?: number | null;
   specialAllowance?: number | null;
   specialPay?: number | null;
   mphilSpecialAllowance?: number | null;
@@ -220,21 +221,60 @@ export interface SalarySlipAvailability {
   message: string;
 }
 
+export interface SalarySlipInfoField {
+  label: string;
+  value: string;
+}
+
+export interface SalarySlipLineItem {
+  label: string;
+  amount: number;
+}
+
+export interface SalarySlipRecoverySection {
+  title: string;
+  payable: number;
+  recoveredTill: number;
+  recoverable: number;
+}
+
 export interface SalarySlip {
   payrollId: number;
   slipNumber: string;
   period: { month: number; year: number; label: string };
+  dated: string;
+  organization: {
+    title: string;
+    subtitle: string;
+    documentTitle: string;
+  };
   employee: {
     id: number;
     employeeCode: string;
     fullName: string;
-    stage: string;
+    fatherName: string;
     designation: string;
+    basicPayScale: string;
+    cnicNo: string;
+    mobile: string;
     email: string;
+    dateOfBirth: string;
+    dateOfRetirement: string;
     dateOfJoining: string;
+    lengthOfService: string;
+    stage: string;
+    employmentType: string;
+    bankName: string;
+    bankBranch: string;
+    accountNumber: string;
   };
+  employeeInfoFields: SalarySlipInfoField[];
+  allowances: SalarySlipLineItem[];
+  deductions: SalarySlipLineItem[];
+  loanRecovery: SalarySlipRecoverySection | null;
+  taxRecovery: SalarySlipRecoverySection | null;
   earnings: { basicSalary: number; grossSalary: number; salaryDays?: number | null };
-  deductions: Array<{
+  rawDeductions: Array<{
     name: string;
     code: string;
     category: string;
@@ -251,6 +291,7 @@ export interface SalarySlip {
     taxSlabName: string | null;
     appliedTaxRate: number | null;
   };
+  notes: string[];
   status: string;
   generatedAt: string;
 }
@@ -273,6 +314,56 @@ export interface GpFundScale {
   value: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface GpFundMarkupSettings {
+  id: number;
+  monthlyMarkupRate: number;
+  annualMarkupRate: number;
+  updatedAt: string;
+}
+
+export type GpFundAdvanceStatus = 'active' | 'completed' | 'cancelled';
+
+export interface GpFundAdvancePayment {
+  id: number;
+  payrollId: number | null;
+  amount: number;
+  month: number;
+  year: number;
+}
+
+export interface GpFundAdvance {
+  id: number;
+  employeeId: number;
+  employeeCode: string;
+  name: string;
+  designation: string;
+  gpFundScale: string | null;
+  advanceAmount: number;
+  installmentMonths: number;
+  monthlyInstallment: number;
+  amountRepaid: number;
+  remainingBalance: number;
+  installmentsPaid: number;
+  installmentsRemaining: number;
+  status: GpFundAdvanceStatus;
+  takenDate: string;
+  notes: string | null;
+  payments: GpFundAdvancePayment[];
+}
+
+export interface GpFundAdvanceSummary {
+  totalAdvances: number;
+  activeCount: number;
+  completedCount: number;
+  cancelledCount: number;
+  totalAdvanced: number;
+  totalRepaid: number;
+  totalOutstanding: number;
+  monthlyInstallmentsDue: number;
+  totalInstallmentsCollected: number;
+  advances: GpFundAdvance[];
 }
 
 export interface PayrollMonthSummary {
@@ -314,6 +405,13 @@ export interface DashboardStats {
   taxCollection: DashboardTaxCollection;
   gpFund: {
     totalCollected: number;
+    totalBaseCollected: number;
+    totalMonthlyMarkup: number;
+    totalAnnualMarkup: number;
+    totalAdvanceInstallments: number;
+    monthlyMarkupRate: number;
+    annualMarkupRate: number;
+    advances: GpFundAdvanceSummary;
     enrolledEmployees: number;
     contributingRecords: number;
     avgMonthlyContribution: number;
@@ -440,9 +538,15 @@ export interface GpFundOverviewSummary {
   payrollCount: number;
   employeeCount: number;
   enrolledEmployeeCount: number;
+  totalBaseCollected: number;
+  totalMonthlyMarkup: number;
+  totalAnnualMarkup: number;
+  totalAdvanceInstallments: number;
   totalCollected: number;
   avgMonthlyContribution: number;
   scaleCount: number;
+  monthlyMarkupRate: number;
+  annualMarkupRate: number;
 }
 
 export interface GpFundOverviewMonthRow {
@@ -451,6 +555,9 @@ export interface GpFundOverviewMonthRow {
   label: string;
   payrollCount: number;
   employeeCount: number;
+  totalBaseCollected: number;
+  totalMonthlyMarkup: number;
+  totalAnnualMarkup: number;
   totalCollected: number;
 }
 
@@ -458,6 +565,9 @@ export interface GpFundOverviewYearRow {
   year: number;
   payrollCount: number;
   employeeCount: number;
+  totalBaseCollected: number;
+  totalMonthlyMarkup: number;
+  totalAnnualMarkup: number;
   totalCollected: number;
 }
 
@@ -466,6 +576,9 @@ export interface GpFundOverviewScaleRow {
   subscriptionValue: number;
   payrollCount: number;
   employeeCount: number;
+  totalBaseCollected: number;
+  totalMonthlyMarkup: number;
+  totalAnnualMarkup: number;
   totalCollected: number;
 }
 
@@ -477,6 +590,9 @@ export interface GpFundOverviewEmployeeRow {
   gpFundScale: string | null;
   subscriptionValue: number;
   payrollCount: number;
+  totalBaseCollected: number;
+  totalMonthlyMarkup: number;
+  totalAnnualMarkup: number;
   totalCollected: number;
 }
 
@@ -491,6 +607,10 @@ export interface GpFundOverviewRecordRow {
   label: string;
   gpFundScale: string | null;
   subscriptionValue: number;
+  gpFundBaseAmount: number;
+  monthlyMarkupAmount: number;
+  annualMarkupAmount: number;
+  advanceInstallmentAmount: number;
   gpFundAmount: number;
   grossSalary: number;
 }
@@ -502,6 +622,7 @@ export interface GpFundOverviewData {
   byScale: GpFundOverviewScaleRow[];
   byEmployee: GpFundOverviewEmployeeRow[];
   records: GpFundOverviewRecordRow[];
+  advances: GpFundAdvanceSummary;
   availableYears: number[];
   filters: {
     employeeId: number | null;
