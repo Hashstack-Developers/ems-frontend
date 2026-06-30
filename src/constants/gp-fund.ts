@@ -1,3 +1,5 @@
+import { roundAmount } from '@/lib/format';
+
 export const GP_FUND_DEDUCTION_CODE = 'GP_FUND';
 export const GP_FUND_MONTHLY_MARKUP_CODE = 'GP_FUND_MONTHLY_MARKUP';
 export const GP_FUND_ANNUAL_MARKUP_CODE = 'GP_FUND_ANNUAL_MARKUP';
@@ -26,16 +28,16 @@ export interface GpFundDeductionBreakdown {
 export function getGpFundBreakdownFromPayroll(
   deductions: Array<{ code: string; amount: number }> | undefined,
 ): GpFundDeductionBreakdown {
-  const baseAmount = Number(
+  const baseAmount = roundAmount(
     deductions?.find((d) => d.code === GP_FUND_DEDUCTION_CODE)?.amount ?? 0,
   );
-  const monthlyMarkupAmount = Number(
+  const monthlyMarkupAmount = roundAmount(
     deductions?.find((d) => d.code === GP_FUND_MONTHLY_MARKUP_CODE)?.amount ?? 0,
   );
-  const annualMarkupAmount = Number(
+  const annualMarkupAmount = roundAmount(
     deductions?.find((d) => d.code === GP_FUND_ANNUAL_MARKUP_CODE)?.amount ?? 0,
   );
-  const advanceInstallmentAmount = Number(
+  const advanceInstallmentAmount = roundAmount(
     deductions?.find((d) => d.code === GP_FUND_ADVANCE_CODE)?.amount ?? 0,
   );
 
@@ -44,6 +46,8 @@ export function getGpFundBreakdownFromPayroll(
     monthlyMarkupAmount,
     annualMarkupAmount,
     advanceInstallmentAmount,
-    totalAmount: baseAmount + monthlyMarkupAmount + annualMarkupAmount + advanceInstallmentAmount,
+    totalAmount: roundAmount(
+      baseAmount + monthlyMarkupAmount + annualMarkupAmount + advanceInstallmentAmount,
+    ),
   };
 }

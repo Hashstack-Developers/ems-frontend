@@ -1,12 +1,6 @@
 import type { SalarySlip, SalarySlipLineItem, SalarySlipRecoverySection } from '@/types';
 import { SALARY_SLIP_LOGO_PATHS } from '@/constants/salary-slip';
-
-export function formatSlipAmount(value: number): string {
-  return value.toLocaleString('en-PK', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  });
-}
+import { formatSlipAmount } from '@/lib/format';
 
 function padRows(
   allowances: SalarySlipLineItem[],

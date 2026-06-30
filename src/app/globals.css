@@ -411,11 +411,14 @@ html.theme-transition::after {
   }
 
   #salary-slip-print,
-  #salary-slip-print * {
+  #salary-slip-print *,
+  #gp-fund-report-print,
+  #gp-fund-report-print * {
     visibility: visible;
   }
 
-  #salary-slip-print {
+  #salary-slip-print,
+  #gp-fund-report-print {
     position: absolute;
     left: 0;
     top: 0;
@@ -564,7 +567,22 @@ html.theme-transition::after {
   margin: 0;
 }
 
+.gpf-slip-table .wcla-slip-th {
+  background: #e8e8e8;
+}
+
+.gpf-slip .wcla-slip-pay-table,
+.gpf-slip .wcla-slip-table {
+  border-top: 1px solid #000;
+}
+
 @media print {
+  .gpf-slip-table .wcla-slip-th {
+    background: #e8e8e8 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
   .wcla-salary-slip {
     max-width: none;
     padding: 0.5in;

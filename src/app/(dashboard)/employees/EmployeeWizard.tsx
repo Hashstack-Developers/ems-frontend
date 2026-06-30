@@ -261,6 +261,9 @@ export function EmployeeWizard({
           </div>
           <Input label="E-Mail" type="email" {...text('email')} required={!readOnly} />
           <Input label="Account Number" {...text('accountNumber')} />
+          <Input label="GPF Account Number" {...text('gpfAccountNumber')} />
+          <Input label="Name of Nominee" {...text('nomineeName')} />
+          <Input label="Relation of Nominee" {...text('nomineeRelation')} />
           <div className="col-span-full space-y-1">
             <label htmlFor="address" className="block text-sm font-medium text-neutral-700">
               Address

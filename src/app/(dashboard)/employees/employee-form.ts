@@ -23,6 +23,9 @@ export type EmployeeFormValues = {
   cnicNo: string;
   email: string;
   accountNumber: string;
+  nomineeName: string;
+  nomineeRelation: string;
+  gpfAccountNumber: string;
   designation: string;
   basicPayScale: string;
   dateOfJoining: string;
@@ -117,6 +120,9 @@ export const EDITABLE_FORM_FIELDS = [
   'cnicNo',
   'email',
   'accountNumber',
+  'nomineeName',
+  'nomineeRelation',
+  'gpfAccountNumber',
   'designation',
   'basicPayScale',
   'dateOfJoining',
@@ -146,6 +152,9 @@ export const emptyForm: EmployeeFormValues = {
   cnicNo: '',
   email: '',
   accountNumber: '',
+  nomineeName: '',
+  nomineeRelation: '',
+  gpfAccountNumber: '',
   designation: '',
   basicPayScale: '',
   dateOfJoining: new Date().toISOString().slice(0, 10),
@@ -368,6 +377,9 @@ export function employeeToForm(emp: Employee): EmployeeFormValues {
     cnicNo: emp.cnicNo ?? '',
     email: emp.email,
     accountNumber: emp.accountNumber ?? '',
+    nomineeName: emp.nomineeName ?? '',
+    nomineeRelation: emp.nomineeRelation ?? '',
+    gpfAccountNumber: emp.gpfAccountNumber ?? '',
     designation: emp.designation,
     basicPayScale: emp.basicPayScale ?? '',
     dateOfJoining: emp.dateOfJoining,
@@ -443,6 +455,9 @@ export function buildEmployeePayload(form: EmployeeFormValues) {
     cnicNo: parseOptionalString(derived.cnicNo),
     email: derived.email.trim(),
     accountNumber: parseOptionalString(derived.accountNumber),
+    nomineeName: parseOptionalString(derived.nomineeName),
+    nomineeRelation: parseOptionalString(derived.nomineeRelation),
+    gpfAccountNumber: parseOptionalString(derived.gpfAccountNumber),
     designation: derived.designation.trim(),
     basicPayScale: parseOptionalString(derived.basicPayScale),
     dateOfJoining: derived.dateOfJoining,

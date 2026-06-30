@@ -110,6 +110,9 @@ export interface Employee {
   gpfCollection?: number | null;
   netPayable?: number | null;
   accountNumber?: string | null;
+  nomineeName?: string | null;
+  nomineeRelation?: string | null;
+  gpfAccountNumber?: string | null;
   status: 'active' | 'inactive';
   createdAt: string;
   updatedAt: string;
@@ -629,4 +632,72 @@ export interface GpFundOverviewData {
     years: number[];
     months: number[];
   };
+}
+
+export interface GpFundReportAvailability {
+  employeeId: number;
+  employeeCode: string;
+  fullName: string;
+  stage: string;
+  designation: string;
+  gpFundScale: string | null;
+  payrollCount: number;
+  totalCollected: number;
+  canGenerateReport: boolean;
+  message: string;
+}
+
+export interface GpFundReportAvailabilityResponse {
+  rows: GpFundReportAvailability[];
+  availableYears: number[];
+}
+
+export interface GpFundReportContributionRow {
+  label: string;
+  month: number;
+  year: number;
+  subscriptionValue: number;
+  gpFundBaseAmount: number;
+  monthlyMarkupAmount: number;
+  annualMarkupAmount: number;
+  advanceInstallmentAmount: number;
+  gpFundAmount: number;
+}
+
+export interface GpFundSlipTableRow {
+  srNo: number;
+  subscriptionPerMonth: number;
+  tenure: string;
+  closingBalance: number;
+  currentBalance: number;
+  collectionRate: string;
+  markupAmount: number;
+  totalBalanceInclusiveMarkup: number;
+}
+
+export interface GpFundLoanRecovery {
+  totalPayable: number;
+  recoveredTill: number;
+  balancePayable: number;
+}
+
+export interface GpFundReport {
+  reportNumber: string;
+  dated: string;
+  periodLabel: string;
+  organization: {
+    title: string;
+    subtitle: string;
+    documentTitle: string;
+  };
+  employee: {
+    id: number;
+    employeeCode: string;
+  };
+  employeeInfoFields: Array<{ label: string; value: string }>;
+  fundTableRows: GpFundSlipTableRow[];
+  loanRecovery: GpFundLoanRecovery;
+  totalGpfBalance: number;
+  notes: string[];
+  generatedAt: string;
 }

@@ -1,10 +1,24 @@
-export function formatCurrency(value: number): string {
+export function roundAmount(value: number | string | null | undefined): number {
+  if (value == null || value === '') return 0;
+  const parsed = typeof value === 'number' ? value : Number(value);
+  if (Number.isNaN(parsed)) return 0;
+  return Math.round(parsed * 100) / 100;
+}
+
+export function formatCurrency(value: number | string | null | undefined): string {
   return new Intl.NumberFormat('en-PK', {
     style: 'currency',
     currency: 'PKR',
     minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(value);
+    maximumFractionDigits: 0,
+  }).format(roundAmount(value));
+}
+
+export function formatSlipAmount(value: number | string | null | undefined): string {
+  return roundAmount(value).toLocaleString('en-PK', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
 }
 
 export function formatDate(date: string): string {
@@ -24,7 +38,7 @@ export function formatDeductionRate(d: {
     return `${Number(d.appliedRate)}%`;
   }
   if (d.calculationType === 'fixed' && d.appliedFixedAmount != null) {
-    return formatCurrency(Number(d.appliedFixedAmount));
+    return formatCurrency(d.appliedFixedAmount);
   }
   return '';
 }

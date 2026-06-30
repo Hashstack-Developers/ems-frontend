@@ -31,6 +31,8 @@ export const PERMISSIONS = {
   GP_FUND_CREATE: 'gpFund.create',
   GP_FUND_UPDATE: 'gpFund.update',
   GP_FUND_DELETE: 'gpFund.delete',
+  GP_FUND_GENERATE: 'gpFund.generate',
+  GP_FUND_EXPORT: 'gpFund.export',
   REPORTS_VIEW: 'reports.view',
   REPORTS_EXPORT: 'reports.export',
   SETTINGS_VIEW: 'settings.view',

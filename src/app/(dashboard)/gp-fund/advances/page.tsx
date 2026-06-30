@@ -2,7 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import api, { getErrorMessage } from '@/lib/api';
-import { formatCurrency, MONTHS } from '@/lib/format';
+import { formatCurrency, MONTHS, roundAmount } from '@/lib/format';
 import { hasPermission } from '@/lib/permissions';
 import { useToast } from '@/contexts/ToastContext';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
@@ -75,7 +75,7 @@ export default function GpFundAdvancesPage() {
     const amount = Number(newAmount);
     const months = Number(newMonths);
     if (Number.isNaN(amount) || Number.isNaN(months) || amount <= 0 || months <= 0) return null;
-    return Math.round((amount / months) * 100) / 100;
+    return roundAmount(amount / months);
   }, [newAmount, newMonths]);
 
   const fetchEmployees = useCallback(async () => {
