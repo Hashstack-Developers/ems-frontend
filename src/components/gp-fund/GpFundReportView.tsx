@@ -39,20 +39,21 @@ export function GpFundReportView({ report }: GpFundReportViewProps) {
       <table className="wcla-slip-pay-table gpf-slip-table mt-3 w-full border-collapse text-[10px]">
         <thead>
           <tr>
-            <th className="wcla-slip-th w-[6%] text-center">Sr. No.</th>
-            <th className="wcla-slip-th w-[13%] text-right">Subscription of GP Fund per Month</th>
-            <th className="wcla-slip-th w-[13%]">Tenure</th>
-            <th className="wcla-slip-th w-[12%] text-right">Balance c/f</th>
-            <th className="wcla-slip-th w-[12%] text-right">Collection of GP Fund</th>
-            <th className="wcla-slip-th w-[12%] text-right">Mark-up Rate per Anum</th>
-            <th className="wcla-slip-th w-[12%] text-right">GP Fund including Mark-up</th>
-            <th className="wcla-slip-th w-[20%] text-right">Total Balance (Inclusive Mark-UP)</th>
+            <th className="wcla-slip-th w-[5%] text-center">Sr. No.</th>
+            <th className="wcla-slip-th w-[11%] text-right">Subscription of GP Fund per Month</th>
+            <th className="wcla-slip-th w-[12%]">Tenure</th>
+            <th className="wcla-slip-th w-[10%] text-right">Closing Balance</th>
+            <th className="wcla-slip-th w-[10%] text-right">Yearly Collection</th>
+            <th className="wcla-slip-th w-[10%] text-right">Accumulated Amount</th>
+            <th className="wcla-slip-th w-[10%] text-right">Mark-Up Rate</th>
+            <th className="wcla-slip-th w-[10%] text-right">Mark-up Amount</th>
+            <th className="wcla-slip-th w-[22%] text-right">Total Balance (Inclusive Mark-UP)</th>
           </tr>
         </thead>
         <tbody>
           {report.fundTableRows.length === 0 ? (
             <tr>
-              <td colSpan={8} className="wcla-slip-td text-center text-muted">
+              <td colSpan={9} className="wcla-slip-td text-center text-muted">
                 No contributions in selected period
               </td>
             </tr>
@@ -63,6 +64,7 @@ export function GpFundReportView({ report }: GpFundReportViewProps) {
                 <td className="wcla-slip-td text-right">{formatSlipAmount(row.subscriptionPerMonth)}</td>
                 <td className="wcla-slip-td">{row.tenure}</td>
                 <td className="wcla-slip-td text-right">{formatSlipAmount(row.closingBalance)}</td>
+                <td className="wcla-slip-td text-right">{formatSlipAmount(row.yearlyCollection)}</td>
                 <td className="wcla-slip-td text-right">{formatSlipAmount(row.currentBalance)}</td>
                 <td className="wcla-slip-td text-right">{row.collectionRate}</td>
                 <td className="wcla-slip-td text-right">{formatSlipAmount(row.markupAmount)}</td>
@@ -76,12 +78,12 @@ export function GpFundReportView({ report }: GpFundReportViewProps) {
             <td className="wcla-slip-td" colSpan={2}>
               Recovered till: {report.loanRecovery.recoveredTill > 0 ? formatSlipAmount(report.loanRecovery.recoveredTill) : ''}
             </td>
-            <td className="wcla-slip-td" colSpan={2}>
+            <td className="wcla-slip-td" colSpan={3}>
               Balance Payable: {report.loanRecovery.balancePayable > 0 ? formatSlipAmount(report.loanRecovery.balancePayable) : ''}
             </td>
           </tr>
           <tr className="font-bold">
-            <td className="wcla-slip-td" colSpan={6}>Total GPF Balance</td>
+            <td className="wcla-slip-td" colSpan={7}>Total GPF Balance</td>
             <td className="wcla-slip-td text-right" colSpan={2}>{formatSlipAmount(report.totalGpfBalance)}</td>
           </tr>
         </tbody>

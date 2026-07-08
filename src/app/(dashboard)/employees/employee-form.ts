@@ -53,6 +53,8 @@ export type EmployeeFormValues = {
   integratedAllowance: string;
   wa: string;
   computerAllowance: string;
+  welfareAllowance: string;
+  managementAllowance: string;
   specialAllowance: string;
   socialSecurityBenefit: string;
   specialPay: string;
@@ -90,6 +92,8 @@ export const NUMERIC_FORM_FIELDS = [
   'integratedAllowance',
   'wa',
   'computerAllowance',
+  'welfareAllowance',
+  'managementAllowance',
   'specialAllowance',
   'specialPay',
   'mphilSpecialAllowance',
@@ -182,6 +186,8 @@ export const emptyForm: EmployeeFormValues = {
   integratedAllowance: '',
   wa: '',
   computerAllowance: '',
+  welfareAllowance: '',
+  managementAllowance: '',
   specialAllowance: '',
   socialSecurityBenefit: '',
   specialPay: '',
@@ -218,6 +224,7 @@ function computeRetirementDate(dateOfBirth: string): string {
   const dob = new Date(dateOfBirth);
   const retirement = new Date(dob);
   retirement.setFullYear(retirement.getFullYear() + 60);
+  retirement.setDate(retirement.getDate() - 1);
   return retirement.toISOString().slice(0, 10);
 }
 
@@ -407,6 +414,8 @@ export function employeeToForm(emp: Employee): EmployeeFormValues {
     integratedAllowance: str(emp.integratedAllowance),
     wa: str(emp.wa),
     computerAllowance: str(emp.computerAllowance),
+    welfareAllowance: str(emp.welfareAllowance),
+    managementAllowance: str(emp.managementAllowance),
     specialAllowance: str(emp.specialAllowance),
     socialSecurityBenefit: str(emp.socialSecurityBenefit),
     specialPay: str(emp.specialPay),

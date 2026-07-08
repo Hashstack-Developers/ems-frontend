@@ -329,6 +329,7 @@ export default function GpFundAdvancesPage() {
               header={
                 <>
                   <Th className="min-w-[180px]">Employee</Th>
+                  <Th className="min-w-[150px]">Father Name</Th>
                   <Th className="w-[100px]">Scale</Th>
                   <Th className="w-[120px]">Advance</Th>
                   <Th className="w-[100px]">Months</Th>
@@ -343,9 +344,9 @@ export default function GpFundAdvancesPage() {
               }
             >
               {refetching ? (
-                <TableBodySkeleton rows={6} cols={11} />
+                <TableBodySkeleton rows={6} cols={12} />
               ) : filteredAdvances.length === 0 ? (
-                <tr><td colSpan={11} className="py-8 text-center text-muted-light">No GP Fund advances found</td></tr>
+                <tr><td colSpan={12} className="py-8 text-center text-muted-light">No GP Fund advances found</td></tr>
               ) : (
                 filteredAdvances.map((row) => (
                   <Fragment key={row.id}>
@@ -354,6 +355,7 @@ export default function GpFundAdvancesPage() {
                         <p className="font-medium">{row.name}</p>
                         <p className="font-mono text-xs text-muted-light">{row.employeeCode}</p>
                       </Td>
+                      <Td className="text-muted">{row.fatherName || '—'}</Td>
                       <Td>{row.gpFundScale ?? '—'}</Td>
                       <Td>{formatCurrency(row.advanceAmount)}</Td>
                       <Td>{row.installmentMonths}</Td>
@@ -376,7 +378,7 @@ export default function GpFundAdvancesPage() {
                     </tr>
                     {expandedId === row.id && (
                       <tr>
-                        <td colSpan={11} className="bg-neutral-50 px-4 py-4">
+                        <td colSpan={12} className="bg-neutral-50 px-4 py-4">
                           <div className="grid gap-4 lg:grid-cols-2">
                             <div>
                               <p className="text-sm font-medium text-neutral-800">Repayment schedule</p>

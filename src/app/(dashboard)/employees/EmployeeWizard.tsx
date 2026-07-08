@@ -337,6 +337,8 @@ export function EmployeeWizard({
           <Input label="Integrated Allowance" {...num('integratedAllowance')} />
           <Input label="Washing Allowance" {...num('wa')} />
           <Input label="Computer Allowance" {...num('computerAllowance')} />
+          <Input label="Welfare Allowance" {...num('welfareAllowance')} />
+          <Input label="Management Allowance" {...num('managementAllowance')} />
           <Input label="Special Allowance" {...num('specialAllowance')} />
           <Input label="Social Security Benefit" {...num('socialSecurityBenefit')} />
           <Input label="Special Pay" {...num('specialPay')} />

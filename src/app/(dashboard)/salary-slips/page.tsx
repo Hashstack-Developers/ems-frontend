@@ -223,7 +223,7 @@ export default function SalarySlipsPage() {
   const eligibleCount = availability.filter((a) => a.canGenerateSlip).length;
   const canExport = hasPermission('salarySlips.export');
   const showActionsColumn = hasAnyPermission('salarySlips.generate', 'salarySlips.export');
-  const columnCount = (canExport ? 1 : 0) + 4 + (showActionsColumn ? 1 : 0);
+  const columnCount = (canExport ? 1 : 0) + 5 + (showActionsColumn ? 1 : 0);
 
   return (
     <PageContainer fill>
@@ -307,6 +307,7 @@ export default function SalarySlipsPage() {
               </Th>
             )}
             <Th className="min-w-[200px]">Employee</Th>
+            <Th className="min-w-[160px]">Father Name</Th>
             <Th className="min-w-[160px]">Stage</Th>
             <Th className="w-[140px]">Payroll Status</Th>
             <Th className="min-w-[240px]">Slip Status</Th>
@@ -341,6 +342,7 @@ export default function SalarySlipsPage() {
                   <p className="font-medium">{item.fullName}</p>
                   <p className="font-mono text-xs text-muted-light">{item.employeeCode}</p>
                 </Td>
+                <Td className="text-muted">{item.fatherName || '—'}</Td>
                 <Td>{item.stage}</Td>
                 <Td>
                   {item.payrollStatus ? (

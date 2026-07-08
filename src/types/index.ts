@@ -92,6 +92,8 @@ export interface Employee {
   integratedAllowance?: number | null;
   wa?: number | null;
   computerAllowance?: number | null;
+  welfareAllowance?: number | null;
+  managementAllowance?: number | null;
   specialAllowance?: number | null;
   specialPay?: number | null;
   mphilSpecialAllowance?: number | null;
@@ -227,6 +229,7 @@ export interface SalarySlipAvailability {
   employeeId: number;
   employeeCode: string;
   fullName: string;
+  fatherName: string;
   stage: string;
   designation: string;
   payrollId: number | null;
@@ -351,6 +354,7 @@ export interface GpFundAdvance {
   employeeId: number;
   employeeCode: string;
   name: string;
+  fatherName: string;
   designation: string;
   gpFundScale: string | null;
   advanceAmount: number;
@@ -501,6 +505,7 @@ export interface TaxOverviewEmployeeRow {
   employeeId: number;
   employeeCode: string;
   name: string;
+  fatherName: string;
   designation: string;
   payrollCount: number;
   totalIncomeTax: number;
@@ -522,6 +527,7 @@ export interface TaxOverviewRecordRow {
   employeeId: number;
   employeeCode: string;
   name: string;
+  fatherName: string;
   designation: string;
   month: number;
   year: number;
@@ -598,6 +604,7 @@ export interface GpFundOverviewEmployeeRow {
   employeeId: number;
   employeeCode: string;
   name: string;
+  fatherName: string;
   designation: string;
   gpFundScale: string | null;
   subscriptionValue: number;
@@ -612,6 +619,7 @@ export interface GpFundOverviewRecordRow {
   employeeId: number;
   employeeCode: string;
   name: string;
+  fatherName: string;
   designation: string;
   month: number;
   year: number;
@@ -646,6 +654,7 @@ export interface GpFundReportAvailability {
   employeeId: number;
   employeeCode: string;
   fullName: string;
+  fatherName: string;
   stage: string;
   designation: string;
   gpFundScale: string | null;
@@ -677,6 +686,7 @@ export interface GpFundSlipTableRow {
   subscriptionPerMonth: number;
   tenure: string;
   closingBalance: number;
+  yearlyCollection: number;
   currentBalance: number;
   collectionRate: string;
   markupAmount: number;

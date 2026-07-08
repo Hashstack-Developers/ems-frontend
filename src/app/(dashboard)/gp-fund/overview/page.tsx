@@ -416,6 +416,7 @@ export default function GpFundOverviewPage() {
                 header={
                   <>
                     <Th className="min-w-[160px]">Employee</Th>
+                    <Th className="min-w-[150px]">Father Name</Th>
                     <Th className="w-[130px]">Period</Th>
                     <Th className="w-[100px]">Scale</Th>
                     <Th className="w-[120px]">Base</Th>
@@ -427,9 +428,9 @@ export default function GpFundOverviewPage() {
                 }
               >
                 {refetching ? (
-                  <TableBodySkeleton rows={6} cols={8} />
+                  <TableBodySkeleton rows={6} cols={9} />
                 ) : filteredRecords.length === 0 ? (
-                  <tr><td colSpan={8} className="py-8 text-center text-muted-light">No matching records</td></tr>
+                  <tr><td colSpan={9} className="py-8 text-center text-muted-light">No matching records</td></tr>
                 ) : (
                   filteredRecords.map((row) => (
                     <tr key={row.payrollId}>
@@ -437,6 +438,7 @@ export default function GpFundOverviewPage() {
                         <p className="font-medium">{row.name}</p>
                         <p className="font-mono text-xs text-muted-light">{row.employeeCode}</p>
                       </Td>
+                      <Td className="text-muted">{row.fatherName || '—'}</Td>
                       <Td>{row.label}</Td>
                       <Td>
                         <span className="gp-fund-chip px-2 py-0.5 text-xs font-semibold">
@@ -461,6 +463,7 @@ export default function GpFundOverviewPage() {
                 header={
                   <>
                     <Th className="min-w-[180px]">Employee</Th>
+                    <Th className="min-w-[150px]">Father Name</Th>
                     <Th className="min-w-[140px]">Designation</Th>
                     <Th className="w-[90px]">Scale</Th>
                     <Th className="w-[120px]">Subscription</Th>
@@ -472,9 +475,9 @@ export default function GpFundOverviewPage() {
                 }
               >
                 {refetching ? (
-                  <TableBodySkeleton rows={6} cols={8} />
+                  <TableBodySkeleton rows={6} cols={9} />
                 ) : filteredEmployees.length === 0 ? (
-                  <tr><td colSpan={8} className="py-8 text-center text-muted-light">No matching employees</td></tr>
+                  <tr><td colSpan={9} className="py-8 text-center text-muted-light">No matching employees</td></tr>
                 ) : (
                   filteredEmployees.map((row) => (
                     <tr key={row.employeeId}>
@@ -482,6 +485,7 @@ export default function GpFundOverviewPage() {
                         <p className="font-medium">{row.name}</p>
                         <p className="font-mono text-xs text-muted-light">{row.employeeCode}</p>
                       </Td>
+                      <Td className="text-muted">{row.fatherName || '—'}</Td>
                       <Td>{row.designation}</Td>
                       <Td>{row.gpFundScale}</Td>
                       <Td>{formatCurrency(row.subscriptionValue)}</Td>

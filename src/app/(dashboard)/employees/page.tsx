@@ -180,7 +180,7 @@ export default function EmployeesPage() {
   };
 
   const showActionsColumn = hasAnyPermission('employees.view', 'employees.update', 'employees.delete');
-  const columnCount = showActionsColumn ? 8 : 7;
+  const columnCount = showActionsColumn ? 9 : 8;
 
   const designationOptions = useMemo(() => {
     const unique = [...new Set(employees.map((emp) => emp.designation).filter(Boolean))].sort();
@@ -283,6 +283,7 @@ export default function EmployeesPage() {
             <Th className="w-[80px]">Sr No</Th>
             <Th className="min-w-[160px] w-[160px]">Code</Th>
             <Th className="min-w-[180px]">Name</Th>
+            <Th className="min-w-[150px]">Father Name</Th>
             <Th className="min-w-[150px]">Designation</Th>
             <Th className="w-[140px]">Gross w/ Taxes</Th>
             <Th className="w-[100px]">Status</Th>
@@ -301,6 +302,7 @@ export default function EmployeesPage() {
               <Td className="font-mono text-xs">{emp.srNo ?? '—'}</Td>
               <Td className="whitespace-nowrap font-mono text-xs">{emp.employeeCode}</Td>
               <Td className="font-medium">{emp.name}</Td>
+              <Td className="text-muted">{emp.fatherName ?? '—'}</Td>
               <Td>{emp.designation}</Td>
               <Td>{formatCurrency(Number(emp.grossSalaryWithTaxes ?? emp.basicPayDec2025 ?? 0))}</Td>
               <Td>

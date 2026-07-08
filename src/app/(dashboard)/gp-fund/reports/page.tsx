@@ -247,7 +247,7 @@ export default function GpFundReportsPage() {
   const canExport = hasPermission('gpFund.export');
   const canGenerate = hasPermission('gpFund.generate');
   const showActionsColumn = hasAnyPermission('gpFund.generate', 'gpFund.export');
-  const columnCount = (canExport ? 1 : 0) + 6 + (showActionsColumn ? 1 : 0);
+  const columnCount = (canExport ? 1 : 0) + 7 + (showActionsColumn ? 1 : 0);
 
   return (
     <PageContainer fill>
@@ -363,6 +363,7 @@ export default function GpFundReportsPage() {
               </Th>
             )}
             <Th>Employee</Th>
+            <Th>Father Name</Th>
             <Th>Code</Th>
             <Th>Scale</Th>
             <Th>Stage</Th>
@@ -402,6 +403,7 @@ export default function GpFundReportsPage() {
                     <p className="text-xs text-muted">{item.designation}</p>
                   </div>
                 </Td>
+                <Td className="text-muted">{item.fatherName || '—'}</Td>
                 <Td>{item.employeeCode}</Td>
                 <Td>{item.gpFundScale ?? '—'}</Td>
                 <Td>{item.stage || '—'}</Td>

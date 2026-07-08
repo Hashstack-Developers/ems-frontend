@@ -45,6 +45,7 @@ export default function PayrollsPage() {
   const [holdEmployees, setHoldEmployees] = useState<PayrollHoldEmployee[]>([]);
   const [holdsFetching, setHoldsFetching] = useState(false);
   const [togglingHoldId, setTogglingHoldId] = useState<number | null>(null);
+  const [holdsSearch, setHoldsSearch] = useState('');
 
   const fetchPayrolls = useCallback(async (options?: { refetch?: boolean }) => {
     const isRefetch = options?.refetch ?? false;
@@ -410,13 +411,24 @@ export default function PayrollsPage() {
 
       <Modal
         open={showHoldsModal}
-        onClose={() => setShowHoldsModal(false)}
+        onClose={() => { setShowHoldsModal(false); setHoldsSearch(''); }}
         title="Payroll Hold Management"
       >
         <div className="space-y-3">
           <p className="text-sm text-muted">
             Employees on hold are skipped during payroll generation. When hold is removed and payroll is next generated, all missed months will be automatically caught up.
           </p>
+
+          {!holdsFetching && holdEmployees.length > 0 && (
+            <input
+              type="text"
+              value={holdsSearch}
+              onChange={(e) => setHoldsSearch(e.target.value)}
+              placeholder="Search by name, code, or designation…"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted focus:border-primary focus:ring-1 focus:ring-primary dark:border-neutral-300"
+              style={{ background: 'var(--ems-surface)' }}
+            />
+          )}
 
           {holdsFetching ? (
             <div className="space-y-2 py-2">
@@ -427,15 +439,19 @@ export default function PayrollsPage() {
           ) : holdEmployees.length === 0 ? (
             <p className="py-4 text-center text-sm text-muted">No active employees found.</p>
           ) : (
-            <div className="max-h-[420px] divide-y divide-neutral-100 overflow-y-auto rounded-lg border border-neutral-200">
-              {holdEmployees.map((emp) => (
+            <div className="max-h-[420px] divide-y divide-neutral-200 overflow-y-auto rounded-lg border border-neutral-200">
+              {holdEmployees.filter((emp) => matchesSearch(holdsSearch, emp.name, emp.employeeCode, emp.designation)).length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted">No employees match your search.</p>
+              ) : holdEmployees
+                .filter((emp) => matchesSearch(holdsSearch, emp.name, emp.employeeCode, emp.designation))
+                .map((emp) => (
                 <div
                   key={emp.id}
-                  className={`flex items-center justify-between gap-3 px-4 py-3 transition-colors ${emp.payrollOnHold ? 'bg-red-50' : 'bg-white hover:bg-neutral-50'}`}
+                  className={`flex items-center justify-between gap-3 px-4 py-3 transition-colors ${emp.payrollOnHold ? 'bg-red-50 dark:bg-red-900/20' : 'hover:bg-neutral-100'}`}
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">{emp.name}</p>
-                    <p className="font-mono text-xs text-muted-light">
+                    <p className="font-mono text-xs text-muted">
                       {emp.employeeCode}
                       {emp.designation ? ` · ${emp.designation}` : ''}
                     </p>
@@ -463,14 +479,14 @@ export default function PayrollsPage() {
             </div>
           )}
 
-          {!holdsFetching && holdEmployees.filter((e) => e.payrollOnHold).length > 0 && (
+          {!holdsFetching && holdsSearch === '' && holdEmployees.filter((e) => e.payrollOnHold).length > 0 && (
             <p className="text-xs text-danger">
               {holdEmployees.filter((e) => e.payrollOnHold).length} employee(s) currently on hold — their payroll will be skipped on next generation.
             </p>
           )}
 
           <div className="flex justify-end pt-2">
-            <Button variant="secondary" onClick={() => setShowHoldsModal(false)}>
+            <Button variant="secondary" onClick={() => { setShowHoldsModal(false); setHoldsSearch(''); }}>
               Close
             </Button>
           </div>
