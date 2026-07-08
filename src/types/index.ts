@@ -114,8 +114,19 @@ export interface Employee {
   nomineeRelation?: string | null;
   gpfAccountNumber?: string | null;
   status: 'active' | 'inactive';
+  payrollOnHold: boolean;
+  payrollHeldFrom?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface PayrollHoldEmployee {
+  id: number;
+  employeeCode: string;
+  name: string;
+  designation: string;
+  payrollOnHold: boolean;
+  payrollHeldFrom: string | null;
 }
 
 export interface TaxSlab {
@@ -321,7 +332,6 @@ export interface GpFundScale {
 
 export interface GpFundMarkupSettings {
   id: number;
-  monthlyMarkupRate: number;
   annualMarkupRate: number;
   updatedAt: string;
 }
@@ -354,6 +364,12 @@ export interface GpFundAdvance {
   takenDate: string;
   notes: string | null;
   payments: GpFundAdvancePayment[];
+}
+
+export interface GpFundAdvanceEligibility {
+  totalGpFundBalance: number;
+  maxAdvancePercentage: number;
+  maxAdvanceAmount: number;
 }
 
 export interface GpFundAdvanceSummary {
@@ -409,10 +425,8 @@ export interface DashboardStats {
   gpFund: {
     totalCollected: number;
     totalBaseCollected: number;
-    totalMonthlyMarkup: number;
     totalAnnualMarkup: number;
     totalAdvanceInstallments: number;
-    monthlyMarkupRate: number;
     annualMarkupRate: number;
     advances: GpFundAdvanceSummary;
     enrolledEmployees: number;
@@ -542,13 +556,11 @@ export interface GpFundOverviewSummary {
   employeeCount: number;
   enrolledEmployeeCount: number;
   totalBaseCollected: number;
-  totalMonthlyMarkup: number;
   totalAnnualMarkup: number;
   totalAdvanceInstallments: number;
   totalCollected: number;
   avgMonthlyContribution: number;
   scaleCount: number;
-  monthlyMarkupRate: number;
   annualMarkupRate: number;
 }
 
@@ -559,7 +571,6 @@ export interface GpFundOverviewMonthRow {
   payrollCount: number;
   employeeCount: number;
   totalBaseCollected: number;
-  totalMonthlyMarkup: number;
   totalAnnualMarkup: number;
   totalCollected: number;
 }
@@ -569,7 +580,6 @@ export interface GpFundOverviewYearRow {
   payrollCount: number;
   employeeCount: number;
   totalBaseCollected: number;
-  totalMonthlyMarkup: number;
   totalAnnualMarkup: number;
   totalCollected: number;
 }
@@ -580,7 +590,6 @@ export interface GpFundOverviewScaleRow {
   payrollCount: number;
   employeeCount: number;
   totalBaseCollected: number;
-  totalMonthlyMarkup: number;
   totalAnnualMarkup: number;
   totalCollected: number;
 }
@@ -594,7 +603,6 @@ export interface GpFundOverviewEmployeeRow {
   subscriptionValue: number;
   payrollCount: number;
   totalBaseCollected: number;
-  totalMonthlyMarkup: number;
   totalAnnualMarkup: number;
   totalCollected: number;
 }

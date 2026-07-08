@@ -4,7 +4,7 @@ export const WIZARD_STEPS = [
   { id: 1, title: 'Personal Information' },
   { id: 2, title: 'Employment Information' },
   { id: 3, title: 'Salary Structure' },
-  { id: 4, title: 'Scale / Service Progression' },
+  { id: 4, title: 'Stage / Service Progression' },
   { id: 5, title: 'Deductions & Taxation' },
   { id: 6, title: 'Salary Summary' },
 ] as const;
@@ -342,7 +342,6 @@ export function validateStep(
     const requiredStep6: { key: keyof EmployeeFormValues; label: string }[] = [
       { key: 'grossSalary', label: 'Gross salary' },
       { key: 'grossSalaryWithTaxes', label: 'Gross salary with taxes' },
-      { key: 'netPayable', label: 'Net payable' },
     ];
     for (const { key, label } of requiredStep6) {
       if (!options?.isEditing && !derived[key].trim()) {

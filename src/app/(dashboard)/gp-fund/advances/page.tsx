@@ -2,10 +2,11 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import api, { getErrorMessage } from '@/lib/api';
-import { formatCurrency, MONTHS, roundAmount } from '@/lib/format';
+import { formatCurrency, formatDate, MONTHS, roundAmount } from '@/lib/format';
 import { hasPermission } from '@/lib/permissions';
 import { useToast } from '@/contexts/ToastContext';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { DateInput } from '@/components/ui/DateInput';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -24,7 +25,13 @@ import {
 import { SkeletonBar, TableBodySkeleton } from '@/components/ui/Skeletons';
 import { GP_FUND_ADVANCE_MAX_MONTHS } from '@/constants/gp-fund';
 import { matchesSearch } from '@/lib/table-filter';
-import type { ApiResponse, Employee, GpFundAdvance, GpFundAdvanceSummary } from '@/types';
+import type {
+  ApiResponse,
+  Employee,
+  GpFundAdvance,
+  GpFundAdvanceEligibility,
+  GpFundAdvanceSummary,
+} from '@/types';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All statuses' },
@@ -70,6 +77,8 @@ export default function GpFundAdvancesPage() {
   const [newMonths, setNewMonths] = useState('36');
   const [newTakenDate, setNewTakenDate] = useState(new Date().toISOString().slice(0, 10));
   const [newNotes, setNewNotes] = useState('');
+  const [eligibility, setEligibility] = useState<GpFundAdvanceEligibility | null>(null);
+  const [eligibilityLoading, setEligibilityLoading] = useState(false);
 
   const previewInstallment = useMemo(() => {
     const amount = Number(newAmount);
@@ -77,6 +86,34 @@ export default function GpFundAdvancesPage() {
     if (Number.isNaN(amount) || Number.isNaN(months) || amount <= 0 || months <= 0) return null;
     return roundAmount(amount / months);
   }, [newAmount, newMonths]);
+
+  const amountExceedsMax =
+    eligibility != null && Number(newAmount) > eligibility.maxAdvanceAmount;
+
+  useEffect(() => {
+    if (!newEmployeeId) {
+      setEligibility(null);
+      return;
+    }
+    let ignore = false;
+    setEligibilityLoading(true);
+    api
+      .get<ApiResponse<GpFundAdvanceEligibility>>(
+        `/gp-fund/advances/employee/${newEmployeeId}/eligibility`,
+      )
+      .then(({ data }) => {
+        if (!ignore) setEligibility(data.data);
+      })
+      .catch(() => {
+        if (!ignore) setEligibility(null);
+      })
+      .finally(() => {
+        if (!ignore) setEligibilityLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [newEmployeeId]);
 
   const fetchEmployees = useCallback(async () => {
     try {
@@ -133,6 +170,7 @@ export default function GpFundAdvancesPage() {
     setNewMonths('36');
     setNewTakenDate(new Date().toISOString().slice(0, 10));
     setNewNotes('');
+    setEligibility(null);
   };
 
   const handleCreate = async () => {
@@ -140,6 +178,12 @@ export default function GpFundAdvancesPage() {
     const months = Number(newMonths);
     if (!newEmployeeId) {
       toast.error('Select an employee');
+      return;
+    }
+    if (eligibility && amount > eligibility.maxAdvanceAmount) {
+      toast.error(
+        `Advance amount cannot exceed ${eligibility.maxAdvancePercentage}% of the employee's total GP fund balance (${formatCurrency(eligibility.maxAdvanceAmount)})`,
+      );
       return;
     }
     if (Number.isNaN(amount) || amount <= 0) {
@@ -318,7 +362,7 @@ export default function GpFundAdvancesPage() {
                       <Td className="gp-fund-amount">{formatCurrency(row.remainingBalance)}</Td>
                       <Td>{row.installmentsPaid}/{row.installmentMonths}</Td>
                       <Td><StatusBadge status={row.status} /></Td>
-                      <Td>{row.takenDate}</Td>
+                      <Td>{formatDate(row.takenDate)}</Td>
                       <Td>
                         <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()} role="presentation">
                           {row.status === 'active' && canRemoveAdvance(row) && hasPermission('gpFund.update') && (
@@ -385,14 +429,26 @@ export default function GpFundAdvancesPage() {
               })),
             ]}
           />
-          <Input
-            label="Advance Amount (Rs.)"
-            type="number"
-            min="0"
-            step="0.01"
-            value={newAmount}
-            onChange={(e) => setNewAmount(e.target.value)}
-          />
+          <div>
+            <Input
+              label="Advance Amount (Rs.)"
+              type="number"
+              min="0"
+              step="0.01"
+              value={newAmount}
+              onChange={(e) => setNewAmount(e.target.value)}
+              error={amountExceedsMax ? `Exceeds maximum allowed advance` : undefined}
+            />
+            {newEmployeeId && (
+              <p className={`mt-1 text-xs ${amountExceedsMax ? 'text-danger' : 'text-muted'}`}>
+                {eligibilityLoading
+                  ? 'Loading GP fund balance…'
+                  : eligibility
+                    ? `Total GP fund: ${formatCurrency(eligibility.totalGpFundBalance)} — max advance (${eligibility.maxAdvancePercentage}%): ${formatCurrency(eligibility.maxAdvanceAmount)}`
+                    : 'GP fund balance unavailable'}
+              </p>
+            )}
+          </div>
           <Input
             label={`Repayment Months (max ${GP_FUND_ADVANCE_MAX_MONTHS})`}
             type="number"
@@ -401,9 +457,8 @@ export default function GpFundAdvancesPage() {
             value={newMonths}
             onChange={(e) => setNewMonths(e.target.value)}
           />
-          <Input
+          <DateInput
             label="Taken Date"
-            type="date"
             value={newTakenDate}
             onChange={(e) => setNewTakenDate(e.target.value)}
           />
@@ -419,7 +474,7 @@ export default function GpFundAdvancesPage() {
           )}
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreate} loading={creating}>Assign Advance</Button>
+            <Button onClick={handleCreate} loading={creating} disabled={amountExceedsMax}>Assign Advance</Button>
           </div>
         </div>
       </Modal>

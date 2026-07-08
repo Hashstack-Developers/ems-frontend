@@ -159,7 +159,6 @@ export default function DashboardPage() {
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
                       <StatBannerItem label="Total Collected" value={formatCurrency(stats.gpFund.totalCollected)} valueClassName="banner-gp-fund-value" />
                       <StatBannerItem label="Base Subscriptions" value={formatCurrency(stats.gpFund.totalBaseCollected)} valueClassName="banner-gp-fund-value" />
-                      <StatBannerItem label="Monthly Markup" value={formatCurrency(stats.gpFund.totalMonthlyMarkup)} valueClassName="banner-gp-fund-value" />
                       <StatBannerItem label="Annual Markup" value={formatCurrency(stats.gpFund.totalAnnualMarkup)} valueClassName="banner-gp-fund-value" />
                       <StatBannerItem label="Advance Installments" value={formatCurrency(stats.gpFund.totalAdvanceInstallments)} valueClassName="banner-gp-fund-value" />
                       <StatBannerItem label="Outstanding Advances" value={formatCurrency(stats.gpFund.advances.totalOutstanding)} valueClassName="banner-gp-fund-value" />
@@ -167,7 +166,7 @@ export default function DashboardPage() {
                       <StatBannerItem label="Enrolled Employees" value={stats.gpFund.enrolledEmployees} valueClassName="banner-gp-fund-value" />
                     </div>
                     <p className="banner-gp-fund-note mt-4 text-sm">
-                      Markup rates: {Number(stats.gpFund.monthlyMarkupRate)}% monthly · {Number(stats.gpFund.annualMarkupRate)}% annual · {stats.gpFund.advances.activeCount} active advance(s)
+                      Markup rate: {Number(stats.gpFund.annualMarkupRate)}% annual · {stats.gpFund.advances.activeCount} active advance(s)
                     </p>
                   </div>
                   {stats.gpFund.byMonth.length > 0 && (

@@ -111,9 +111,18 @@ export default function TaxesOverviewPage() {
   }, [fetchOverview]);
 
   const yearOptions = useMemo(() => {
-    const years = data?.availableYears ?? [];
-    return years;
-  }, [data?.availableYears]);
+    const baseYears = data?.availableYears ?? [];
+    if (!employeeId) return baseYears;
+
+    const emp = employees.find((e) => String(e.id) === employeeId);
+    if (!emp || !emp.dateOfJoining) return baseYears;
+
+    const joinDate = new Date(emp.dateOfJoining);
+    const joinYear = joinDate.getFullYear();
+    const currentYear = new Date().getFullYear();
+
+    return baseYears.filter((year) => year >= joinYear && year <= currentYear);
+  }, [data?.availableYears, employeeId, employees]);
 
   const applyPreset = (preset: 'all' | 'currentYear' | 'lastYear') => {
     const currentYear = new Date().getFullYear();
@@ -130,6 +139,35 @@ export default function TaxesOverviewPage() {
     setSelectedYears([currentYear - 1]);
     setSelectedMonths([]);
   };
+
+  const availableMonths = useMemo(() => {
+    if (!employeeId || !selectedYears.length) return Array.from({ length: 12 }, (_, i) => i + 1);
+
+    const emp = employees.find((e) => String(e.id) === employeeId);
+    if (!emp || !emp.dateOfJoining) return Array.from({ length: 12 }, (_, i) => i + 1);
+
+    const joinDate = new Date(emp.dateOfJoining);
+    const joinYear = joinDate.getFullYear();
+    const joinMonth = joinDate.getMonth() + 1;
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1;
+
+    const allMonths = Array.from({ length: 12 }, (_, i) => i + 1);
+
+    if (selectedYears.length === 1) {
+      const year = selectedYears[0];
+      if (year === joinYear && year === currentYear) {
+        return allMonths.filter((m) => m >= joinMonth && m <= currentMonth);
+      } else if (year === joinYear) {
+        return allMonths.filter((m) => m >= joinMonth);
+      } else if (year === currentYear) {
+        return allMonths.filter((m) => m <= currentMonth);
+      }
+    }
+
+    return allMonths;
+  }, [employeeId, selectedYears, employees]);
 
   const filteredRecords = useMemo(() => {
     if (!data) return [];
@@ -219,14 +257,18 @@ export default function TaxesOverviewPage() {
           <div className={`space-y-2 ${yearOptions.length === 0 ? 'lg:col-span-2' : ''}`}>
             <p className="text-sm font-medium text-neutral-700">Months</p>
             <div className="flex flex-wrap gap-2">
-              {MONTHS.map((month, index) => (
-                <FilterChip
-                  key={month}
-                  active={selectedMonths.includes(index + 1)}
-                  label={month.slice(0, 3)}
-                  onClick={() => setSelectedMonths((current) => toggleInList(current, index + 1))}
-                />
-              ))}
+              {MONTHS.map((month, index) => {
+                const monthNum = index + 1;
+                const isAvailable = availableMonths.includes(monthNum);
+                return (
+                  <FilterChip
+                    key={month}
+                    active={selectedMonths.includes(monthNum)}
+                    label={month.slice(0, 3)}
+                    onClick={() => isAvailable && setSelectedMonths((current) => toggleInList(current, monthNum))}
+                  />
+                );
+              })}
             </div>
           </div>
 

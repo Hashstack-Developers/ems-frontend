@@ -115,7 +115,19 @@ export default function GpFundOverviewPage() {
     fetchOverview();
   }, [fetchOverview]);
 
-  const yearOptions = useMemo(() => data?.availableYears ?? [], [data?.availableYears]);
+  const yearOptions = useMemo(() => {
+    const baseYears = data?.availableYears ?? [];
+    if (!employeeId) return baseYears;
+
+    const emp = employees.find((e) => String(e.id) === employeeId);
+    if (!emp || !emp.dateOfJoining) return baseYears;
+
+    const joinDate = new Date(emp.dateOfJoining);
+    const joinYear = joinDate.getFullYear();
+    const currentYear = new Date().getFullYear();
+
+    return baseYears.filter((year) => year >= joinYear && year <= currentYear);
+  }, [data?.availableYears, employeeId, employees]);
 
   const applyPreset = (preset: 'all' | 'currentYear' | 'lastYear') => {
     const currentYear = new Date().getFullYear();
@@ -132,6 +144,35 @@ export default function GpFundOverviewPage() {
     setSelectedYears([currentYear - 1]);
     setSelectedMonths([]);
   };
+
+  const availableMonths = useMemo(() => {
+    if (!employeeId || !selectedYears.length) return Array.from({ length: 12 }, (_, i) => i + 1);
+
+    const emp = employees.find((e) => String(e.id) === employeeId);
+    if (!emp || !emp.dateOfJoining) return Array.from({ length: 12 }, (_, i) => i + 1);
+
+    const joinDate = new Date(emp.dateOfJoining);
+    const joinYear = joinDate.getFullYear();
+    const joinMonth = joinDate.getMonth() + 1;
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1;
+
+    const allMonths = Array.from({ length: 12 }, (_, i) => i + 1);
+
+    if (selectedYears.length === 1) {
+      const year = selectedYears[0];
+      if (year === joinYear && year === currentYear) {
+        return allMonths.filter((m) => m >= joinMonth && m <= currentMonth);
+      } else if (year === joinYear) {
+        return allMonths.filter((m) => m >= joinMonth);
+      } else if (year === currentYear) {
+        return allMonths.filter((m) => m <= currentMonth);
+      }
+    }
+
+    return allMonths;
+  }, [employeeId, selectedYears, employees]);
 
   const filteredRecords = useMemo(() => {
     if (!data) return [];
@@ -221,15 +262,19 @@ export default function GpFundOverviewPage() {
           <div className={`space-y-2 ${yearOptions.length === 0 ? 'lg:col-span-2' : ''}`}>
             <p className="text-sm font-medium text-neutral-700">Months</p>
             <div className="flex flex-wrap gap-2">
-              {MONTHS.map((month, index) => (
-                <FilterChip
-                  key={month}
-                  variant="teal"
-                  active={selectedMonths.includes(index + 1)}
-                  label={month.slice(0, 3)}
-                  onClick={() => setSelectedMonths((current) => toggleInList(current, index + 1))}
-                />
-              ))}
+              {MONTHS.map((month, index) => {
+                const monthNum = index + 1;
+                const isAvailable = availableMonths.includes(monthNum);
+                return (
+                  <FilterChip
+                    key={month}
+                    variant="teal"
+                    active={selectedMonths.includes(monthNum)}
+                    label={month.slice(0, 3)}
+                    onClick={() => isAvailable && setSelectedMonths((current) => toggleInList(current, monthNum))}
+                  />
+                );
+              })}
             </div>
           </div>
 
@@ -290,11 +335,6 @@ export default function GpFundOverviewPage() {
                 valueClassName="banner-gp-fund-value"
               />
               <StatBannerItem
-                label="Monthly Markup"
-                value={formatCurrency(data.summary.totalMonthlyMarkup)}
-                valueClassName="banner-gp-fund-value"
-              />
-              <StatBannerItem
                 label="Annual Markup"
                 value={formatCurrency(data.summary.totalAnnualMarkup)}
                 valueClassName="banner-gp-fund-value"
@@ -316,7 +356,7 @@ export default function GpFundOverviewPage() {
               />
             </div>
             <p className="banner-gp-fund-note mt-4 text-sm">
-              {data.summary.scaleCount} active scale(s) · monthly markup {Number(data.summary.monthlyMarkupRate)}% · annual markup {Number(data.summary.annualMarkupRate)}% · {data.advances.activeCount} active advance(s) · {formatCurrency(data.advances.totalOutstanding)} outstanding
+              {data.summary.scaleCount} active scale(s) · annual markup {Number(data.summary.annualMarkupRate)}% · {data.advances.activeCount} active advance(s) · {formatCurrency(data.advances.totalOutstanding)} outstanding
             </p>
           </div>
 
@@ -379,7 +419,6 @@ export default function GpFundOverviewPage() {
                     <Th className="w-[130px]">Period</Th>
                     <Th className="w-[100px]">Scale</Th>
                     <Th className="w-[120px]">Base</Th>
-                    <Th className="w-[120px]">Monthly Markup</Th>
                     <Th className="w-[120px]">Annual Markup</Th>
                     <Th className="w-[120px]">Advance</Th>
                     <Th className="w-[120px]">Total GP Fund</Th>
@@ -388,9 +427,9 @@ export default function GpFundOverviewPage() {
                 }
               >
                 {refetching ? (
-                  <TableBodySkeleton rows={6} cols={9} />
+                  <TableBodySkeleton rows={6} cols={8} />
                 ) : filteredRecords.length === 0 ? (
-                  <tr><td colSpan={9} className="py-8 text-center text-muted-light">No matching records</td></tr>
+                  <tr><td colSpan={8} className="py-8 text-center text-muted-light">No matching records</td></tr>
                 ) : (
                   filteredRecords.map((row) => (
                     <tr key={row.payrollId}>
@@ -405,7 +444,6 @@ export default function GpFundOverviewPage() {
                         </span>
                       </Td>
                       <Td>{formatCurrency(row.gpFundBaseAmount)}</Td>
-                      <Td>{formatCurrency(row.monthlyMarkupAmount)}</Td>
                       <Td>{formatCurrency(row.annualMarkupAmount)}</Td>
                       <Td>{formatCurrency(row.advanceInstallmentAmount)}</Td>
                       <Td className="gp-fund-amount">{formatCurrency(row.gpFundAmount)}</Td>
@@ -428,16 +466,15 @@ export default function GpFundOverviewPage() {
                     <Th className="w-[120px]">Subscription</Th>
                     <Th className="w-[90px]">Records</Th>
                     <Th className="w-[120px]">Base</Th>
-                    <Th className="w-[120px]">Monthly Markup</Th>
                     <Th className="w-[120px]">Annual Markup</Th>
                     <Th className="w-[140px]">Total Contributed</Th>
                   </>
                 }
               >
                 {refetching ? (
-                  <TableBodySkeleton rows={6} cols={9} />
+                  <TableBodySkeleton rows={6} cols={8} />
                 ) : filteredEmployees.length === 0 ? (
-                  <tr><td colSpan={9} className="py-8 text-center text-muted-light">No matching employees</td></tr>
+                  <tr><td colSpan={8} className="py-8 text-center text-muted-light">No matching employees</td></tr>
                 ) : (
                   filteredEmployees.map((row) => (
                     <tr key={row.employeeId}>
@@ -450,7 +487,6 @@ export default function GpFundOverviewPage() {
                       <Td>{formatCurrency(row.subscriptionValue)}</Td>
                       <Td>{row.payrollCount}</Td>
                       <Td>{formatCurrency(row.totalBaseCollected)}</Td>
-                      <Td>{formatCurrency(row.totalMonthlyMarkup)}</Td>
                       <Td>{formatCurrency(row.totalAnnualMarkup)}</Td>
                       <Td className="gp-fund-amount">{formatCurrency(row.totalCollected)}</Td>
                     </tr>
@@ -470,16 +506,15 @@ export default function GpFundOverviewPage() {
                     <Th className="w-[100px]">Employees</Th>
                     <Th className="w-[100px]">Records</Th>
                     <Th className="w-[120px]">Base</Th>
-                    <Th className="w-[120px]">Monthly Markup</Th>
                     <Th className="w-[120px]">Annual Markup</Th>
                     <Th className="w-[150px]">Total Collected</Th>
                   </>
                 }
               >
                 {refetching ? (
-                  <TableBodySkeleton rows={5} cols={8} />
+                  <TableBodySkeleton rows={5} cols={7} />
                 ) : filteredScales.length === 0 ? (
-                  <tr><td colSpan={8} className="py-8 text-center text-muted-light">No matching scales</td></tr>
+                  <tr><td colSpan={7} className="py-8 text-center text-muted-light">No matching scales</td></tr>
                 ) : (
                   filteredScales.map((row) => (
                     <tr key={row.scaleCode}>
@@ -492,7 +527,6 @@ export default function GpFundOverviewPage() {
                       <Td>{row.employeeCount}</Td>
                       <Td>{row.payrollCount}</Td>
                       <Td>{formatCurrency(row.totalBaseCollected)}</Td>
-                      <Td>{formatCurrency(row.totalMonthlyMarkup)}</Td>
                       <Td>{formatCurrency(row.totalAnnualMarkup)}</Td>
                       <Td className="gp-fund-amount">{formatCurrency(row.totalCollected)}</Td>
                     </tr>

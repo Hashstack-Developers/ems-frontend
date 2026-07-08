@@ -143,7 +143,7 @@ export function SalarySlipView({ slip }: SalarySlipViewProps) {
       </div>
 
       <p className="mt-3 text-center text-[10px] text-neutral-500">
-        {slip.slipNumber} · Payroll #{slip.payrollId} · Generated {new Date(slip.generatedAt).toLocaleString()}
+        {slip.slipNumber} · Payroll #{slip.payrollId} · Generated {new Date(slip.generatedAt).toLocaleString('en-GB')}
       </p>
     </div>
   );

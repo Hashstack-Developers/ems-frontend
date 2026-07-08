@@ -40,7 +40,7 @@ export default function GpFundReportsPage() {
   const toast = useToast();
   const selectAllRef = useRef<HTMLInputElement>(null);
   const now = new Date();
-  const [selectedYears, setSelectedYears] = useState<number[]>([now.getFullYear()]);
+  const [selectedYears, setSelectedYears] = useState<number[]>([]);
   const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
   const [stageFilter, setStageFilter] = useState('');
   const [search, setSearch] = useState('');
@@ -448,6 +448,7 @@ export default function GpFundReportsPage() {
           setCurrentReport(null);
         }}
         title="GP Fund Report"
+        size="xl"
       >
         {currentReport && (
           <div>

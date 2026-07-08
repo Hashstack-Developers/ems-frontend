@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { CnicInput } from '@/components/ui/CnicInput';
+import { DateInput } from '@/components/ui/DateInput';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import api from '@/lib/api';
@@ -248,7 +249,7 @@ export function EmployeeWizard({
               { value: 'yes', label: 'Yes' },
             ]}
           />
-          <Input label="DOB" type="date" {...text('dateOfBirth')} />
+          <DateInput label="DOB" {...text('dateOfBirth')} />
           <Input label="Mobile" {...text('mobile')} placeholder="03XXXXXXXXX" />
           <div className="col-span-full sm:col-span-1">
             <CnicInput
@@ -286,7 +287,7 @@ export function EmployeeWizard({
         <FormGrid>
           <Input label="Designation" {...text('designation')} required={!readOnly} />
           <Input label="Basic Pay Scale" {...text('basicPayScale')} />
-          <Input label="Date Of Joining" type="date" {...text('dateOfJoining')} required={!readOnly} />
+          <DateInput label="Date Of Joining" {...text('dateOfJoining')} required={!readOnly} />
           <Select
             label="Employment Type (Contract / Regular)"
             value={form.employmentType}
@@ -299,12 +300,12 @@ export function EmployeeWizard({
             ]}
           />
           {form.employmentType === 'contract' && (
-            <Input label="Contract Expiry Date" type="date" {...text('contractExpiryDate')} />
+            <DateInput label="Contract Expiry Date" {...text('contractExpiryDate')} />
           )}
           {form.employmentType === 'regular' && (
-            <Input label="Date of Regularization" type="date" {...text('dateOfRegularization')} />
+            <DateInput label="Date of Regularization" {...text('dateOfRegularization')} />
           )}
-          <Input label="Date Of Retirement/Superannuation (Age 60)" type="date" value={form.dateOfRetirement} readOnly disabled />
+          <DateInput label="Date Of Retirement/Superannuation (Age 60)" value={form.dateOfRetirement} readOnly disabled />
           <Input label="Length Of Service" value={form.lengthOfService} readOnly disabled />
           <Select
             label="Status"
@@ -346,7 +347,7 @@ export function EmployeeWizard({
 
       {currentStep === 4 && (
         <FormGrid>
-          <Input label="Basic pay scale" {...text('stage')} />
+          <Input label="Basic pay stage" {...text('stage')} />
           <div>
             <Input
               label="Time Period (Payable Days)"
@@ -423,7 +424,6 @@ export function EmployeeWizard({
         <FormGrid>
           <Input label="Gross Salary" {...num('grossSalary')} required={!readOnly} />
           <Input label="Gross Salary with Taxes" {...num('grossSalaryWithTaxes')} required={!readOnly} />
-          <Input label="Net Payable" {...num('netPayable')} required={!readOnly} />
         </FormGrid>
       )}
       </div>

@@ -6,6 +6,7 @@ import { formatCurrency, formatDeductionRate, MONTHS } from '@/lib/format';
 import { hasPermission } from '@/lib/permissions';
 import { useToast } from '@/contexts/ToastContext';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { TableFilters } from '@/components/ui/TableFilters';
@@ -23,7 +24,7 @@ import {
 import { PayrollListSkeleton, StatBannerSkeleton } from '@/components/ui/Skeletons';
 import { matchesSearch } from '@/lib/table-filter';
 import { getGpFundBreakdownFromPayroll, isGpFundDeductionCode } from '@/constants/gp-fund';
-import type { ApiResponse, Payroll, PayrollGenerationResult, PayrollGenerationStatus } from '@/types';
+import type { ApiResponse, Payroll, PayrollGenerationResult, PayrollGenerationStatus, PayrollHoldEmployee } from '@/types';
 
 export default function PayrollsPage() {
   const toast = useToast();
@@ -40,6 +41,10 @@ export default function PayrollsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Payroll | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [search, setSearch] = useState('');
+  const [showHoldsModal, setShowHoldsModal] = useState(false);
+  const [holdEmployees, setHoldEmployees] = useState<PayrollHoldEmployee[]>([]);
+  const [holdsFetching, setHoldsFetching] = useState(false);
+  const [togglingHoldId, setTogglingHoldId] = useState<number | null>(null);
 
   const fetchPayrolls = useCallback(async (options?: { refetch?: boolean }) => {
     const isRefetch = options?.refetch ?? false;
@@ -120,10 +125,42 @@ export default function PayrollsPage() {
     }
   };
 
+  const fetchEmployeeHolds = async () => {
+    setHoldsFetching(true);
+    try {
+      const { data } = await api.get<ApiResponse<PayrollHoldEmployee[]>>('/payrolls/employee-holds');
+      setHoldEmployees(data.data);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setHoldsFetching(false);
+    }
+  };
+
+  const openHoldsModal = () => {
+    setShowHoldsModal(true);
+    fetchEmployeeHolds();
+  };
+
+  const toggleHold = async (employee: PayrollHoldEmployee) => {
+    setTogglingHoldId(employee.id);
+    try {
+      await api.patch(`/employees/${employee.id}/payroll-hold`, { onHold: !employee.payrollOnHold });
+      setHoldEmployees((prev) =>
+        prev.map((e) => e.id === employee.id ? { ...e, payrollOnHold: !e.payrollOnHold } : e),
+      );
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setTogglingHoldId(null);
+    }
+  };
+
   const totalGross = payrolls.reduce((s, p) => s + Number(p.grossSalary), 0);
   const totalNet = payrolls.reduce((s, p) => s + Number(p.netSalary), 0);
   const missingCount = generationStatus.filter((item) => item.canGenerate).length;
   const coveredCount = generationStatus.length - missingCount;
+  const heldCount = holdEmployees.filter((e) => e.payrollOnHold).length;
 
   const filteredPayrolls = useMemo(
     () =>
@@ -172,11 +209,16 @@ export default function PayrollsPage() {
               </div>
             )}
             {hasPermission('payrolls.generate') && (
-              <Button onClick={handleGenerate} loading={generating}>
-                {missingCount > 0 && coveredCount > 0
-                  ? `Generate Missing (${missingCount})`
-                  : 'Generate Payroll'}
-              </Button>
+              <>
+                <Button variant="secondary" onClick={openHoldsModal}>
+                  Payroll Holds{heldCount > 0 ? ` (${heldCount})` : ''}
+                </Button>
+                <Button onClick={handleGenerate} loading={generating}>
+                  {missingCount > 0 && coveredCount > 0
+                    ? `Generate Missing (${missingCount})`
+                    : 'Generate Payroll'}
+                </Button>
+              </>
             )}
           </>
         }
@@ -312,10 +354,9 @@ export default function PayrollsPage() {
                     <div>
                       <p className="text-xs text-muted">GP Fund Total</p>
                       <p className="gp-fund-amount font-medium">{formatCurrency(gpFund.totalAmount)}</p>
-                      {(gpFund.monthlyMarkupAmount > 0 || gpFund.annualMarkupAmount > 0 || gpFund.advanceInstallmentAmount > 0) && (
+                      {(gpFund.annualMarkupAmount > 0 || gpFund.advanceInstallmentAmount > 0) && (
                         <p className="mt-0.5 text-[11px] text-muted-light">
                           Base {formatCurrency(gpFund.baseAmount)}
-                          {gpFund.monthlyMarkupAmount > 0 && ` · M ${formatCurrency(gpFund.monthlyMarkupAmount)}`}
                           {gpFund.annualMarkupAmount > 0 && ` · Y ${formatCurrency(gpFund.annualMarkupAmount)}`}
                           {gpFund.advanceInstallmentAmount > 0 && ` · Adv ${formatCurrency(gpFund.advanceInstallmentAmount)}`}
                         </p>
@@ -366,6 +407,75 @@ export default function PayrollsPage() {
         }
         loading={deleting}
       />
+
+      <Modal
+        open={showHoldsModal}
+        onClose={() => setShowHoldsModal(false)}
+        title="Payroll Hold Management"
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-muted">
+            Employees on hold are skipped during payroll generation. When hold is removed and payroll is next generated, all missed months will be automatically caught up.
+          </p>
+
+          {holdsFetching ? (
+            <div className="space-y-2 py-2">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-12 animate-pulse rounded-lg bg-neutral-100" />
+              ))}
+            </div>
+          ) : holdEmployees.length === 0 ? (
+            <p className="py-4 text-center text-sm text-muted">No active employees found.</p>
+          ) : (
+            <div className="max-h-[420px] divide-y divide-neutral-100 overflow-y-auto rounded-lg border border-neutral-200">
+              {holdEmployees.map((emp) => (
+                <div
+                  key={emp.id}
+                  className={`flex items-center justify-between gap-3 px-4 py-3 transition-colors ${emp.payrollOnHold ? 'bg-red-50' : 'bg-white hover:bg-neutral-50'}`}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">{emp.name}</p>
+                    <p className="font-mono text-xs text-muted-light">
+                      {emp.employeeCode}
+                      {emp.designation ? ` · ${emp.designation}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-3">
+                    {emp.payrollOnHold && (
+                      <span className="rounded-full bg-danger px-2 py-0.5 text-xs font-medium text-white">
+                        On Hold
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      disabled={togglingHoldId === emp.id}
+                      onClick={() => toggleHold(emp)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 disabled:opacity-50 ${emp.payrollOnHold ? 'bg-danger' : 'bg-neutral-300'}`}
+                      aria-label={emp.payrollOnHold ? 'Remove hold' : 'Enable hold'}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${emp.payrollOnHold ? 'translate-x-5' : 'translate-x-0'}`}
+                      />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!holdsFetching && holdEmployees.filter((e) => e.payrollOnHold).length > 0 && (
+            <p className="text-xs text-danger">
+              {holdEmployees.filter((e) => e.payrollOnHold).length} employee(s) currently on hold — their payroll will be skipped on next generation.
+            </p>
+          )}
+
+          <div className="flex justify-end pt-2">
+            <Button variant="secondary" onClick={() => setShowHoldsModal(false)}>
+              Close
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </PageContainer>
   );
 }

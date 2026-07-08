@@ -398,6 +398,7 @@ export default function SalarySlipsPage() {
         open={slipModal}
         onClose={() => { setSlipModal(false); setCurrentSlip(null); }}
         title="Salary Slip"
+        size="xl"
       >
         {currentSlip && (
           <div>
