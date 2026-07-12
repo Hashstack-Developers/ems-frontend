@@ -442,6 +442,7 @@ export interface DashboardStats {
     scaleCount: number;
     byMonth: GpFundOverviewMonthRow[];
   };
+  pension: PensionDashboardSummary;
   combined: {
     totalTaxDeductions: number;
     totalGpFund: number;
@@ -819,7 +820,6 @@ export interface PensionEnrollment {
   employee?: Employee;
   isActive: boolean;
   enrolledAt: string;
-  backfillMonths: number;
   createdAt: string;
   updatedAt: string;
 }

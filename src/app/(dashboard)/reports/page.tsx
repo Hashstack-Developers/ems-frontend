@@ -56,6 +56,15 @@ const reportTypes: ReportTypeConfig[] = [
     requiresPeriod: false,
     color: 'purple',
   },
+  {
+    value: 'pension',
+    label: 'Pension Report',
+    icon: '🏛️',
+    description: 'Pension contribution deductions summary per employee with monthly breakdown.',
+    fields: ['Per-employee pension totals', 'Monthly breakdown', 'Active enrollments', 'Period totals'],
+    requiresPeriod: false,
+    color: 'teal',
+  },
 ];
 
 const colorMap: Record<string, { border: string; bg: string; icon: string; badge: string }> = {
@@ -63,6 +72,7 @@ const colorMap: Record<string, { border: string; bg: string; icon: string; badge
   green:  { border: 'border-green-500',  bg: 'bg-green-50 dark:bg-green-900/20', icon: 'bg-green-100 dark:bg-green-900/40', badge: 'bg-green-500' },
   orange: { border: 'border-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/20', icon: 'bg-orange-100 dark:bg-orange-900/40', badge: 'bg-orange-500' },
   purple: { border: 'border-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/20', icon: 'bg-purple-100 dark:bg-purple-900/40', badge: 'bg-purple-500' },
+  teal:   { border: 'border-teal-500',   bg: 'bg-teal-50 dark:bg-teal-900/20',   icon: 'bg-teal-100 dark:bg-teal-900/40',   badge: 'bg-teal-500' },
 };
 
 export default function ReportsPage() {
@@ -82,8 +92,7 @@ export default function ReportsPage() {
       if (selected.requiresPeriod) {
         params.set('month', String(month));
         params.set('year', String(year));
-      } else if (type === 'gpFund') {
-        // optional period filter for GP Fund
+      } else if (type === 'gpFund' || type === 'pension') {
         params.set('year', String(year));
       }
 
@@ -125,7 +134,7 @@ export default function ReportsPage() {
       />
 
       {/* Report Type Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {reportTypes.map((rt) => {
           const isSelected = type === rt.value;
           const c = colorMap[rt.color];
@@ -170,7 +179,7 @@ export default function ReportsPage() {
           </div>
 
           {/* Period filter */}
-          {(selected.requiresPeriod || selected.value === 'gpFund') && (
+          {(selected.requiresPeriod || selected.value === 'gpFund' || selected.value === 'pension') && (
             <div className="flex items-end gap-3">
               {selected.requiresPeriod && (
                 <Select

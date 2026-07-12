@@ -1,6 +1,8 @@
 'use client';
 
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
@@ -15,7 +17,7 @@ import {
 } from 'recharts';
 import { getChartGradients, getThemeTokens } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
-import type { DashboardStats } from '@/types';
+import type { AllowanceDashboardSummary, DashboardStats, PensionByMonth } from '@/types';
 
 const GRADIENT_IDS = {
   gross: 'gradGross',
@@ -254,23 +256,42 @@ export function TaxCollectionMiniChart({ stats }: { stats: DashboardStats }) {
   );
 }
 
-export function CombinedDeductionsPieChart({ stats }: { stats: DashboardStats }) {
+export function CombinedDeductionsPieChart({
+  stats,
+  pensionTotal = 0,
+}: {
+  stats: DashboardStats;
+  pensionTotal?: number;
+}) {
   const { mode, tokens, tooltipStyle } = useChartTheme();
   const { totalTaxDeductions, totalGpFund } = stats.combined;
 
-  if (totalTaxDeductions === 0 && totalGpFund === 0) {
+  if (totalTaxDeductions === 0 && totalGpFund === 0 && pensionTotal === 0) {
     return <p className="py-12 text-center text-sm text-muted-light">No deductions recorded yet</p>;
   }
+
+  const PIE_FILLS_COMBINED = [
+    DASHBOARD_GRADIENT_IDS.taxes,
+    DASHBOARD_GRADIENT_IDS.gpFund,
+    'dashPension',
+  ];
 
   const data = [
     { name: 'Taxes', value: totalTaxDeductions },
     { name: 'GP Fund', value: totalGpFund },
+    { name: 'Pension', value: pensionTotal },
   ].filter((item) => item.value > 0);
 
   return (
     <ResponsiveContainer width="100%" height={260}>
       <PieChart key={mode}>
         <DashboardChartDefs mode={mode} />
+        <defs>
+          <linearGradient id="dashPension" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#7c3aed" stopOpacity={1} />
+            <stop offset="100%" stopColor="#a78bfa" stopOpacity={0.9} />
+          </linearGradient>
+        </defs>
         <Pie
           data={data}
           cx="50%"
@@ -283,12 +304,91 @@ export function CombinedDeductionsPieChart({ stats }: { stats: DashboardStats })
           strokeWidth={3}
           style={{ filter: 'url(#pieShadow)' }}
         >
-          <Cell fill={`url(#${DASHBOARD_GRADIENT_IDS.taxes})`} />
-          <Cell fill={`url(#${DASHBOARD_GRADIENT_IDS.gpFund})`} />
+          {data.map((_, i) => (
+            <Cell key={i} fill={`url(#${PIE_FILLS_COMBINED[i] ?? PIE_FILLS_COMBINED[0]})`} />
+          ))}
         </Pie>
         <Tooltip formatter={(v) => [`PKR ${Number(v).toLocaleString()}`, '']} contentStyle={tooltipStyle} />
         <Legend />
       </PieChart>
+    </ResponsiveContainer>
+  );
+}
+
+export function PensionMiniChart({ byMonth }: { byMonth: PensionByMonth[] }) {
+  const { mode, tokens, tooltipStyle } = useChartTheme();
+  const chartData = byMonth.map((row) => ({
+    name: `${row.month}/${row.year}`,
+    pension: row.total,
+  }));
+
+  if (chartData.length === 0) {
+    return <p className="py-12 text-center text-sm text-muted-light">No pension data yet</p>;
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={240}>
+      <AreaChart key={mode} data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id="pensionGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#7c3aed" stopOpacity={1} />
+            <stop offset="100%" stopColor="#a78bfa" stopOpacity={0.2} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke={tokens.borderLight} vertical={false} />
+        <XAxis dataKey="name" tick={{ fontSize: 10, fill: tokens.muted }} stroke="transparent" />
+        <YAxis tick={{ fontSize: 10, fill: tokens.mutedLight }} stroke="transparent" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+        <Tooltip formatter={currencyTooltip} contentStyle={tooltipStyle} />
+        <Area
+          type="monotone"
+          dataKey="pension"
+          name="Pension"
+          stroke="#7c3aed"
+          strokeWidth={2.5}
+          fill="url(#pensionGrad)"
+          fillOpacity={1}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+}
+
+export function AllowancesMiniChart({ stats }: { stats: AllowanceDashboardSummary }) {
+  const { mode, tokens, tooltipStyle } = useChartTheme();
+  const chartData = [...stats.byMonth]
+    .sort((a, b) => a.year === b.year ? a.month - b.month : a.year - b.year)
+    .slice(-6)
+    .map((row) => ({
+      name: `${row.month}/${row.year}`,
+      welfare: row.welfareTotal,
+      management: row.managementTotal,
+    }));
+
+  if (chartData.length === 0) {
+    return <p className="py-12 text-center text-sm text-muted-light">No allowance data yet</p>;
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={240}>
+      <BarChart key={mode} data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barGap={2} barCategoryGap="22%">
+        <defs>
+          <linearGradient id="welfareGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#0891b2" stopOpacity={1} />
+            <stop offset="100%" stopColor="#67e8f9" stopOpacity={0.9} />
+          </linearGradient>
+          <linearGradient id="managementGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#059669" stopOpacity={1} />
+            <stop offset="100%" stopColor="#34d399" stopOpacity={0.9} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke={tokens.borderLight} vertical={false} />
+        <XAxis dataKey="name" tick={{ fontSize: 10, fill: tokens.muted }} stroke="transparent" />
+        <YAxis tick={{ fontSize: 10, fill: tokens.mutedLight }} stroke="transparent" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+        <Tooltip formatter={currencyTooltip} contentStyle={tooltipStyle} />
+        <Legend />
+        <Bar dataKey="welfare" name="Welfare" stackId="a" fill="url(#welfareGrad)" />
+        <Bar dataKey="management" name="Management" stackId="a" fill="url(#managementGrad)" radius={[6, 6, 0, 0]} />
+      </BarChart>
     </ResponsiveContainer>
   );
 }

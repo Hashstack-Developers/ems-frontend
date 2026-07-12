@@ -6,10 +6,12 @@ import { formatCurrency } from '@/lib/format';
 import { useToast } from '@/contexts/ToastContext';
 import { DashboardContentSkeleton, DashboardSkeleton, SectionCard, StatCard } from '@/components/dashboard/DashboardCards';
 import {
+  AllowancesMiniChart,
   CombinedDeductionsPieChart,
   DeductionsSplitChart,
   EmployeePieChart,
   PayrollBarChart,
+  PensionMiniChart,
   TaxCollectionMiniChart,
 } from '@/components/dashboard/DashboardCharts';
 import { GpFundDashboardMiniChart } from '@/components/gp-fund/GpFundOverviewCharts';
@@ -77,6 +79,7 @@ export default function DashboardPage() {
   const hasGpFundData = (stats?.gpFund.contributingRecords ?? 0) > 0;
   const hasDeductions = (stats?.combined.totalCombinedDeductions ?? 0) > 0;
   const hasAllowanceData = (allowanceStats?.payrollCount ?? 0) > 0;
+  const hasPensionData = (stats?.pension.enrolledEmployees ?? 0) > 0;
 
   return (
     <PageContainer>
@@ -141,6 +144,36 @@ export default function DashboardPage() {
                 </div>
                 <p className="mt-4 text-sm text-muted">{allowanceStats.payrollCount} payroll record(s) with allowances</p>
               </div>
+              {allowanceStats.byMonth.length > 0 && (
+                <div className="mt-4">
+                  <SectionCard title="Welfare vs Management" subtitle="Allowance breakdown by month" delay={300}>
+                    <AllowancesMiniChart stats={allowanceStats} />
+                  </SectionCard>
+                </div>
+              )}
+            </div>
+          )}
+
+          {hasPensionData && stats && (
+            <div className="mt-6 shrink-0">
+              <DashboardSectionHeader
+                title="Pension Contributions"
+                subtitle="Total pension deducted from payroll for enrolled employees"
+              />
+              <div className="banner-soft rounded-2xl p-5 sm:p-6">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6">
+                  <StatBannerItem label="Total Pension Deducted" value={formatCurrency(stats.pension.totalPension)} valueClassName="text-primary-dark" />
+                  <StatBannerItem label="Active Enrollments" value={stats.pension.activeEnrollments} valueClassName="text-success" />
+                  <StatBannerItem label="Employees Contributing" value={stats.pension.enrolledEmployees} valueClassName="text-accent-dark" />
+                </div>
+              </div>
+              {stats.pension.byMonth.length > 0 && (
+                <div className="mt-4">
+                  <SectionCard title="Pension Trend" subtitle="Monthly pension deductions" delay={300}>
+                    <PensionMiniChart byMonth={stats.pension.byMonth} />
+                  </SectionCard>
+                </div>
+              )}
             </div>
           )}
 
@@ -216,8 +249,8 @@ export default function DashboardPage() {
               <DeductionsSplitChart stats={stats} />
             </SectionCard>
             <div className="lg:col-span-2 xl:col-span-1">
-              <SectionCard title="Combined Share" subtitle="Taxes vs GP fund all-time split" delay={440}>
-                <CombinedDeductionsPieChart stats={stats} />
+              <SectionCard title="Deductions Split" subtitle="Taxes, GP Fund and Pension all-time" delay={440}>
+                <CombinedDeductionsPieChart stats={stats} pensionTotal={stats.pension.totalPension} />
               </SectionCard>
             </div>
           </div>
