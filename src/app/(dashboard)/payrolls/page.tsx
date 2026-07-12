@@ -85,9 +85,11 @@ export default function PayrollsPage() {
         '/payrolls/generate',
         { month, year },
       );
+      console.log('[Payroll] Generation result:', data);
       showGenerationToast(data.data, data.message);
       fetchPayrolls({ refetch: true });
     } catch (err) {
+      console.error('[Payroll] Generation failed:', err);
       toast.error(getErrorMessage(err));
     } finally {
       setGenerating(false);

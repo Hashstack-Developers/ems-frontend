@@ -42,6 +42,14 @@ export function getPageKeyFromPath(pathname: string): string | null {
     return 'gpFund' in pagesConfig ? 'gpFund' : null;
   }
 
+  if (pathname.startsWith('/allowances')) {
+    return 'allowances' in pagesConfig ? 'allowances' : null;
+  }
+
+  if (pathname.startsWith('/pension')) {
+    return 'pension' in pagesConfig ? 'pension' : null;
+  }
+
   if (pathname.startsWith('/settings/users')) {
     return 'users' in pagesConfig ? 'users' : null;
   }

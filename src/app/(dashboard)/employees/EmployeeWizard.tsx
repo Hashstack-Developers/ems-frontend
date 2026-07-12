@@ -317,6 +317,17 @@ export function EmployeeWizard({
               { value: 'inactive', label: 'Inactive' },
             ]}
           />
+          <Select
+            label="Employee Type"
+            value={form.employeeType}
+            onChange={(e) => onUpdate({ employeeType: e.target.value as EmployeeFormValues['employeeType'] })}
+            disabled={readOnly}
+            options={[
+              { value: '', label: 'Select type' },
+              { value: 'employee', label: 'Employee' },
+              { value: 'employer', label: 'Employer' },
+            ]}
+          />
         </FormGrid>
       )}
 
@@ -337,8 +348,22 @@ export function EmployeeWizard({
           <Input label="Integrated Allowance" {...num('integratedAllowance')} />
           <Input label="Washing Allowance" {...num('wa')} />
           <Input label="Computer Allowance" {...num('computerAllowance')} />
-          <Input label="Welfare Allowance" {...num('welfareAllowance')} />
-          <Input label="Management Allowance" {...num('managementAllowance')} />
+          <div>
+            <Input label="Welfare Allowance — Custom Rate (%)" {...num('welfareAllowance')} placeholder="Leave blank to use default" />
+            {form.basicPayDec2025 && Number(form.welfareAllowance) > 0 && (
+              <p className="mt-1 text-xs text-muted">
+                Preview: {formatCurrency((Number(form.basicPayDec2025) * Number(form.welfareAllowance)) / 100)} / month
+              </p>
+            )}
+          </div>
+          <div>
+            <Input label="Management Allowance — Custom Rate (%)" {...num('managementAllowance')} placeholder="Leave blank to use default" />
+            {form.basicPayDec2025 && Number(form.managementAllowance) > 0 && (
+              <p className="mt-1 text-xs text-muted">
+                Preview: {formatCurrency((Number(form.basicPayDec2025) * Number(form.managementAllowance)) / 100)} / month
+              </p>
+            )}
+          </div>
           <Input label="Special Allowance" {...num('specialAllowance')} />
           <Input label="Social Security Benefit" {...num('socialSecurityBenefit')} />
           <Input label="Special Pay" {...num('specialPay')} />

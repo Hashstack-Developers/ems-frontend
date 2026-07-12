@@ -15,7 +15,7 @@ import {
 import { GpFundDashboardMiniChart } from '@/components/gp-fund/GpFundOverviewCharts';
 import { PayrollMonthsList } from '@/components/dashboard/PayrollMonthsList';
 import { PageContainer, PageHeader, StatBannerItem } from '@/components/layout/PageShell';
-import type { ApiResponse, DashboardStats } from '@/types';
+import type { ApiResponse, AllowanceDashboardSummary, DashboardStats } from '@/types';
 
 function DashboardSectionHeader({
   title,
@@ -35,6 +35,7 @@ function DashboardSectionHeader({
 export default function DashboardPage() {
   const toast = useToast();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [allowanceStats, setAllowanceStats] = useState<AllowanceDashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refetching, setRefetching] = useState(false);
 
@@ -44,8 +45,13 @@ export default function DashboardPage() {
     else setLoading(true);
 
     try {
-      const { data } = await api.get<ApiResponse<DashboardStats>>('/dashboard/stats');
-      setStats(data.data);
+      const [mainRes, allowanceRes] = await Promise.allSettled([
+        api.get<ApiResponse<DashboardStats>>('/dashboard/stats'),
+        api.get<ApiResponse<AllowanceDashboardSummary>>('/allowances/dashboard'),
+      ]);
+      if (mainRes.status === 'fulfilled') setStats(mainRes.value.data.data);
+      else toast.error(getErrorMessage(mainRes.reason));
+      if (allowanceRes.status === 'fulfilled') setAllowanceStats(allowanceRes.value.data.data);
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -70,6 +76,7 @@ export default function DashboardPage() {
   const hasTaxData = (stats?.taxCollection.payrollRecords ?? 0) > 0;
   const hasGpFundData = (stats?.gpFund.contributingRecords ?? 0) > 0;
   const hasDeductions = (stats?.combined.totalCombinedDeductions ?? 0) > 0;
+  const hasAllowanceData = (allowanceStats?.payrollCount ?? 0) > 0;
 
   return (
     <PageContainer>
@@ -115,6 +122,24 @@ export default function DashboardPage() {
                 <StatBannerItem label="Total Taxes" value={formatCurrency(stats.combined.totalTaxDeductions)} valueClassName="banner-tax-value" />
                 <StatBannerItem label="Total GP Fund" value={formatCurrency(stats.combined.totalGpFund)} valueClassName="banner-gp-fund-value" />
                 <StatBannerItem label="Combined Total" value={formatCurrency(stats.combined.totalCombinedDeductions)} valueClassName="banner-combined-value" />
+              </div>
+            </div>
+          )}
+
+          {hasAllowanceData && allowanceStats && (
+            <div className="mt-6 shrink-0">
+              <DashboardSectionHeader
+                title="Allowances"
+                subtitle="Welfare and management allowances paid through payroll"
+              />
+              <div className="banner-soft rounded-2xl p-5 sm:p-6">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:gap-6">
+                  <StatBannerItem label="Total Allowances" value={formatCurrency(allowanceStats.totalAllowanceAmount)} valueClassName="text-primary-dark" />
+                  <StatBannerItem label="Welfare Amount" value={formatCurrency(allowanceStats.totalWelfareAmount)} valueClassName="text-success" />
+                  <StatBannerItem label="Management Amount" value={formatCurrency(allowanceStats.totalManagementAmount)} valueClassName="text-accent-dark" />
+                  <StatBannerItem label="Employees Receiving" value={allowanceStats.enrolledEmployees} valueClassName="text-primary-dark" />
+                </div>
+                <p className="mt-4 text-sm text-muted">{allowanceStats.payrollCount} payroll record(s) with allowances</p>
               </div>
             </div>
           )}

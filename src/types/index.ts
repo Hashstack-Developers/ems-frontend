@@ -66,6 +66,7 @@ export interface Employee {
   dateOfJoining: string;
   contractExpiryDate?: string | null;
   employmentType?: 'contract' | 'regular' | null;
+  employeeType?: 'employee' | 'employer';
   dateOfRegularization?: string | null;
   dateOfBirth?: string | null;
   dateOfRetirement?: string | null;
@@ -179,6 +180,8 @@ export interface Payroll {
   incomeTax: number;
   totalDeductions: number;
   netSalary: number;
+  welfareAllowanceAmount?: number;
+  managementAllowanceAmount?: number;
   taxSlabId: number | null;
   taxSlabName: string | null;
   appliedTaxRate?: number | null;
@@ -718,4 +721,167 @@ export interface GpFundReport {
   totalGpfBalance: number;
   notes: string[];
   generatedAt: string;
+}
+
+// ── Allowances ────────────────────────────────────────────────────────────────
+
+export interface AllowanceSettings {
+  id: number;
+  welfareRate: number;
+  managementRate: number;
+  updatedAt: string;
+}
+
+export interface AllowanceByMonth {
+  year: number;
+  month: number;
+  label: string;
+  payrollCount: number;
+  employeeCount: number;
+  welfareTotal: number;
+  managementTotal: number;
+  totalAmount: number;
+}
+
+export interface AllowanceByYear {
+  year: number;
+  payrollCount: number;
+  employeeCount: number;
+  welfareTotal: number;
+  managementTotal: number;
+  totalAmount: number;
+}
+
+export interface AllowanceByEmployee {
+  employeeId: number;
+  employeeCode: string;
+  name: string;
+  designation: string;
+  payrollCount: number;
+  welfareTotal: number;
+  managementTotal: number;
+  totalAmount: number;
+}
+
+export interface AllowanceRecord {
+  payrollId: number;
+  employeeId: number;
+  employeeCode: string;
+  name: string;
+  designation: string;
+  month: number;
+  year: number;
+  label: string;
+  welfareAmount: number;
+  managementAmount: number;
+  totalAmount: number;
+  grossSalary: number;
+}
+
+export interface AllowanceOverviewSummary {
+  payrollCount: number;
+  employeeCount: number;
+  totalWelfareAmount: number;
+  totalManagementAmount: number;
+  totalAllowanceAmount: number;
+  avgWelfarePerPayroll: number;
+  avgManagementPerPayroll: number;
+}
+
+export interface AllowanceOverviewData {
+  summary: AllowanceOverviewSummary;
+  byMonth: AllowanceByMonth[];
+  byYear: AllowanceByYear[];
+  byEmployee: AllowanceByEmployee[];
+  records: AllowanceRecord[];
+  availableYears: number[];
+}
+
+export interface AllowanceDashboardSummary {
+  totalWelfareAmount: number;
+  totalManagementAmount: number;
+  totalAllowanceAmount: number;
+  enrolledEmployees: number;
+  payrollCount: number;
+  byMonth: AllowanceByMonth[];
+}
+
+export interface PensionSettings {
+  id: number;
+  employeeRate: number;
+  employerRate: number;
+  updatedAt: string;
+}
+
+export interface PensionEnrollment {
+  id: number;
+  employeeId: number;
+  employee?: Employee;
+  isActive: boolean;
+  enrolledAt: string;
+  backfillMonths: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PensionOverviewRecord {
+  payrollId: number;
+  employeeId: number;
+  employeeCode: string;
+  name: string;
+  designation: string;
+  month: number;
+  year: number;
+  label: string;
+  pensionAmount: number;
+  grossSalary: number;
+}
+
+export interface PensionByMonth {
+  year: number;
+  month: number;
+  label: string;
+  total: number;
+  count: number;
+  employeeCount: number;
+}
+
+export interface PensionByYear {
+  year: number;
+  total: number;
+  count: number;
+  employeeCount: number;
+}
+
+export interface PensionByEmployee {
+  employeeId: number;
+  employeeCode: string;
+  name: string;
+  designation: string;
+  total: number;
+  count: number;
+}
+
+export interface PensionOverviewSummary {
+  payrollCount: number;
+  employeeCount: number;
+  totalPension: number;
+  activeEnrollments: number;
+  totalEnrollments: number;
+}
+
+export interface PensionOverviewData {
+  summary: PensionOverviewSummary;
+  byMonth: PensionByMonth[];
+  byYear: PensionByYear[];
+  byEmployee: PensionByEmployee[];
+  records: PensionOverviewRecord[];
+  availableYears: number[];
+}
+
+export interface PensionDashboardSummary {
+  totalPension: number;
+  activeEnrollments: number;
+  enrolledEmployees: number;
+  byMonth: PensionByMonth[];
 }

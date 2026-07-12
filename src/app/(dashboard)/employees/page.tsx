@@ -107,7 +107,7 @@ export default function EmployeesPage() {
       const originalNum = original === '' ? null : Number(original);
       return currentNum === originalNum;
     }
-    if (key === 'mobile' || key === 'employmentType' || key === 'disability' || key === 'cnicNo' || key === 'address' || key === 'gpFund') {
+    if (key === 'mobile' || key === 'employmentType' || key === 'employeeType' || key === 'disability' || key === 'cnicNo' || key === 'address' || key === 'gpFund') {
       return optionalStringsEqual(String(current), String(original));
     }
     return current === original;

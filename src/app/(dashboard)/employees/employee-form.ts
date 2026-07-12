@@ -31,6 +31,7 @@ export type EmployeeFormValues = {
   dateOfJoining: string;
   contractExpiryDate: string;
   employmentType: '' | 'contract' | 'regular';
+  employeeType: '' | 'employee' | 'employer';
   dateOfRegularization: string;
   dateOfRetirement: string;
   lengthOfService: string;
@@ -132,6 +133,7 @@ export const EDITABLE_FORM_FIELDS = [
   'dateOfJoining',
   'contractExpiryDate',
   'employmentType',
+  'employeeType',
   'dateOfRegularization',
   'dateOfRetirement',
   'lengthOfService',
@@ -164,6 +166,7 @@ export const emptyForm: EmployeeFormValues = {
   dateOfJoining: new Date().toISOString().slice(0, 10),
   contractExpiryDate: '',
   employmentType: '',
+  employeeType: '',
   dateOfRegularization: '',
   dateOfRetirement: '',
   lengthOfService: '',
@@ -391,6 +394,7 @@ export function employeeToForm(emp: Employee): EmployeeFormValues {
     dateOfJoining: emp.dateOfJoining,
     contractExpiryDate: emp.contractExpiryDate ?? '',
     employmentType: emp.employmentType ?? '',
+    employeeType: emp.employeeType ?? '',
     dateOfRegularization: emp.dateOfRegularization ?? '',
     dateOfRetirement: emp.dateOfRetirement ?? '',
     lengthOfService: emp.lengthOfService ?? '',
@@ -471,6 +475,7 @@ export function buildEmployeePayload(form: EmployeeFormValues) {
     dateOfJoining: derived.dateOfJoining,
     contractExpiryDate: parseOptionalString(derived.contractExpiryDate),
     employmentType: derived.employmentType || undefined,
+    employeeType: derived.employeeType || undefined,
     dateOfRegularization: parseOptionalString(derived.dateOfRegularization),
     dateOfRetirement: parseOptionalString(derived.dateOfRetirement),
     lengthOfService: parseOptionalString(derived.lengthOfService),
