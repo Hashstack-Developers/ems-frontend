@@ -317,17 +317,6 @@ export function EmployeeWizard({
               { value: 'inactive', label: 'Inactive' },
             ]}
           />
-          <Select
-            label="Employee Type"
-            value={form.employeeType}
-            onChange={(e) => onUpdate({ employeeType: e.target.value as EmployeeFormValues['employeeType'] })}
-            disabled={readOnly}
-            options={[
-              { value: '', label: 'Select type' },
-              { value: 'employee', label: 'Employee' },
-              { value: 'employer', label: 'Employer' },
-            ]}
-          />
         </FormGrid>
       )}
 

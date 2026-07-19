@@ -83,6 +83,8 @@ export default function ReportsPage() {
   const [year, setYear] = useState(now.getFullYear());
   const [downloading, setDownloading] = useState('');
 
+  const [periodMode, setPeriodMode] = useState<'monthly' | 'yearly'>('monthly');
+
   const selected = reportTypes.find((r) => r.value === type)!;
 
   const downloadReport = async (format: 'csv' | 'pdf') => {
@@ -90,7 +92,7 @@ export default function ReportsPage() {
     try {
       const params = new URLSearchParams({ type, format });
       if (selected.requiresPeriod) {
-        params.set('month', String(month));
+        if (periodMode === 'monthly') params.set('month', String(month));
         params.set('year', String(year));
       } else if (type === 'gpFund' || type === 'pension') {
         params.set('year', String(year));
@@ -182,6 +184,17 @@ export default function ReportsPage() {
           {(selected.requiresPeriod || selected.value === 'gpFund' || selected.value === 'pension') && (
             <div className="flex items-end gap-3">
               {selected.requiresPeriod && (
+                <Select
+                  label="Period Type"
+                  value={periodMode}
+                  onChange={(e) => setPeriodMode(e.target.value as 'monthly' | 'yearly')}
+                  options={[
+                    { value: 'monthly', label: 'Monthly' },
+                    { value: 'yearly', label: 'Yearly' },
+                  ]}
+                />
+              )}
+              {selected.requiresPeriod && periodMode === 'monthly' && (
                 <Select
                   label="Month"
                   value={month}

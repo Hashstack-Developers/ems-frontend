@@ -169,10 +169,13 @@ export default function PensionOverviewPage() {
       ) : (
         <>
           <div className="banner-soft mb-6 shrink-0 rounded-2xl p-5 sm:p-6">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 sm:gap-6">
-              <StatBannerItem label="Total Pension Deducted" value={formatCurrency(data.summary.totalPension)} valueClassName="text-primary-dark" />
-              <StatBannerItem label="Employees Contributing" value={data.summary.employeeCount} valueClassName="text-primary-dark" />
-              <StatBannerItem label="Active Enrollments" value={data.summary.activeEnrollments} valueClassName="text-success" />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 sm:gap-6">
+              <StatBannerItem label="Employee Pension (Total)" value={formatCurrency(data.summary.totalEmployeePension)} valueClassName="text-primary-dark" />
+              <StatBannerItem label="Employer Pension (Total)" value={formatCurrency(data.summary.totalEmployerPension)} valueClassName="text-accent-dark" />
+              <StatBannerItem label="Combined Total Pension" value={formatCurrency(data.summary.totalPension)} valueClassName="text-success" />
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
+              <StatBannerItem label="Active Enrollments" value={data.summary.activeEnrollments} valueClassName="text-primary-dark" />
               <StatBannerItem label="Payroll Records" value={data.summary.payrollCount} valueClassName="text-accent-dark" />
             </div>
           </div>

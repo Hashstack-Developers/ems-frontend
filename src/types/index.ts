@@ -866,6 +866,8 @@ export interface PensionOverviewSummary {
   payrollCount: number;
   employeeCount: number;
   totalPension: number;
+  totalEmployeePension: number;
+  totalEmployerPension: number;
   activeEnrollments: number;
   totalEnrollments: number;
 }
