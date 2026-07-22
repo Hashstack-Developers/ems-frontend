@@ -34,7 +34,7 @@ const reportTypes: ReportTypeConfig[] = [
     label: 'Payrolls Report',
     icon: '💰',
     description: 'Monthly payroll records with gross salary, all deductions, and net pay per employee.',
-    fields: ['Gross salary', 'Income tax & tax slab', 'GP Fund deductions', 'Net salary totals'],
+    fields: ['Gross salary', 'Income tax & GP Fund', 'Employee & employer pension', 'Net salary totals'],
     requiresPeriod: true,
     color: 'green',
   },
@@ -110,15 +110,31 @@ export default function ReportsPage() {
 
       const blob = await response.blob();
       const disposition = response.headers.get('Content-Disposition');
-      const filename = disposition?.match(/filename="(.+)"/)?.[1] ?? `${type}-report.${format}`;
+      const contentType = response.headers.get('Content-Type') ?? blob.type ?? '';
+      const isExcel =
+        contentType.includes('spreadsheetml') ||
+        contentType.includes('excel') ||
+        /\.xlsx/i.test(disposition ?? '');
+
+      const filenameFromHeader = disposition?.match(/filename="?([^";]+)"?/i)?.[1];
+      const extension = isExcel
+        ? 'xlsx'
+        : format === 'pdf'
+          ? 'pdf'
+          : 'csv';
+      const filename = filenameFromHeader ?? `${type}-report.${extension}`;
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = filename;
+      a.download = filename.endsWith(`.${extension}`) ? filename : `${filename.replace(/\.[^.]+$/, '')}.${extension}`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success(`${format.toUpperCase()} report downloaded`);
+      toast.success(
+        isExcel
+          ? 'Excel report downloaded'
+          : `${format.toUpperCase()} report downloaded`,
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Download failed');
     } finally {
@@ -132,7 +148,7 @@ export default function ReportsPage() {
     <PageContainer>
       <PageHeader
         title="Reports"
-        subtitle="Generate and download detailed reports in PDF or CSV format"
+        subtitle="Generate and download detailed reports in PDF or Excel format"
       />
 
       {/* Report Type Cards */}
@@ -238,7 +254,7 @@ export default function ReportsPage() {
                   <polyline points="16 18 22 12 16 6"/>
                   <polyline points="8 6 2 12 8 18"/>
                 </svg>
-                Download CSV
+                Download Excel
               </Button>
             </div>
           )}
@@ -250,7 +266,7 @@ export default function ReportsPage() {
         {[
           { icon: '🏛️', label: 'Organization', value: 'WCLA' },
           { icon: '📄', label: 'PDF Format', value: 'A4 with WCLA header & logos' },
-          { icon: '📋', label: 'CSV Format', value: 'Full column labels, UTF-8' },
+          { icon: '📋', label: 'Excel Format', value: 'WCLA header, logos & columns' },
           { icon: '🔒', label: 'Permission', value: 'reports.export required' },
         ].map(({ icon, label, value }) => (
           <div key={label} className="rounded-xl border border-neutral-200 bg-white p-3 dark:border-neutral-700 dark:bg-neutral-800/40">

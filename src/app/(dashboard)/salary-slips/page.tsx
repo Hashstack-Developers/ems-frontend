@@ -8,6 +8,7 @@ import {
   downloadSalarySlipPdf,
   downloadSalarySlipsZip,
 } from '@/lib/salary-slip-downloads';
+import { printElementById } from '@/lib/print-element';
 import { useToast } from '@/contexts/ToastContext';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -217,7 +218,7 @@ export default function SalarySlipsPage() {
   };
 
   const handlePrint = () => {
-    window.print();
+    printElementById('salary-slip-print');
   };
 
   const eligibleCount = availability.filter((a) => a.canGenerateSlip).length;

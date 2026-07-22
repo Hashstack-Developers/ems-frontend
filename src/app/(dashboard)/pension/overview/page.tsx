@@ -184,10 +184,12 @@ export default function PensionOverviewPage() {
             <div className="mb-6 shrink-0">
               <SectionCard title="Yearly Totals" subtitle="Pension contributions by calendar year">
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[500px] text-sm">
+                  <table className="w-full min-w-[640px] text-sm">
                     <thead>
                       <tr className="border-b border-border-light">
                         <th className="py-2 text-left font-medium text-muted">Year</th>
+                        <th className="py-2 text-right font-medium text-muted">Employee Pension</th>
+                        <th className="py-2 text-right font-medium text-muted">Employer Pension</th>
                         <th className="py-2 text-right font-medium text-muted">Total Pension</th>
                         <th className="py-2 text-right font-medium text-muted">Records</th>
                         <th className="py-2 text-right font-medium text-muted">Employees</th>
@@ -197,7 +199,9 @@ export default function PensionOverviewPage() {
                       {data.byYear.map((row) => (
                         <tr key={row.year} className="border-b border-border-light/50 last:border-0">
                           <td className="py-2.5 font-medium">{row.year}</td>
-                          <td className="py-2.5 text-right font-semibold text-primary-dark">{formatCurrency(row.total)}</td>
+                          <td className="py-2.5 text-right font-semibold text-primary-dark">{formatCurrency(row.employeePension)}</td>
+                          <td className="py-2.5 text-right font-semibold text-accent-dark">{formatCurrency(row.employerPension)}</td>
+                          <td className="py-2.5 text-right font-semibold text-success">{formatCurrency(row.total)}</td>
                           <td className="py-2.5 text-right text-muted">{row.count}</td>
                           <td className="py-2.5 text-right text-muted">{row.employeeCount}</td>
                         </tr>
@@ -247,40 +251,48 @@ export default function PensionOverviewPage() {
             )}
 
             {tableView === 'employees' && (
-              <DataTableCard fill={false} minWidth="min-w-[700px]" header={<>
+              <DataTableCard fill={false} minWidth="min-w-[980px]" header={<>
                 <Th className="min-w-[180px]">Employee</Th>
                 <Th className="min-w-[130px]">Designation</Th>
                 <Th className="w-[90px]">Records</Th>
-                <Th className="w-[150px]">Total Pension</Th>
+                <Th className="w-[140px]">Employee Pension</Th>
+                <Th className="w-[140px]">Employer Pension</Th>
+                <Th className="w-[140px]">Total Pension</Th>
               </>}>
-                {refetching ? <TableBodySkeleton rows={6} cols={4} /> : filteredEmployees.length === 0 ? (
-                  <tr><td colSpan={4} className="py-8 text-center text-muted-light">No matching employees</td></tr>
+                {refetching ? <TableBodySkeleton rows={6} cols={6} /> : filteredEmployees.length === 0 ? (
+                  <tr><td colSpan={6} className="py-8 text-center text-muted-light">No matching employees</td></tr>
                 ) : filteredEmployees.map((r) => (
                   <tr key={r.employeeId}>
                     <Td><p className="font-medium">{r.name}</p><p className="font-mono text-xs text-muted">{r.employeeCode}</p></Td>
                     <Td className="text-muted">{r.designation}</Td>
                     <Td>{r.count}</Td>
-                    <Td className="font-semibold text-primary-dark">{formatCurrency(r.total)}</Td>
+                    <Td className="font-semibold text-primary-dark">{formatCurrency(r.employeePension)}</Td>
+                    <Td className="font-semibold text-accent-dark">{formatCurrency(r.employerPension)}</Td>
+                    <Td className="font-semibold text-success">{formatCurrency(r.total)}</Td>
                   </tr>
                 ))}
               </DataTableCard>
             )}
 
             {tableView === 'months' && (
-              <DataTableCard fill={false} minWidth="min-w-[640px]" header={<>
+              <DataTableCard fill={false} minWidth="min-w-[900px]" header={<>
                 <Th className="min-w-[160px]">Period</Th>
                 <Th className="w-[90px]">Records</Th>
                 <Th className="w-[100px]">Employees</Th>
-                <Th className="w-[150px]">Total Pension</Th>
+                <Th className="w-[140px]">Employee Pension</Th>
+                <Th className="w-[140px]">Employer Pension</Th>
+                <Th className="w-[140px]">Total Pension</Th>
               </>}>
-                {refetching ? <TableBodySkeleton rows={6} cols={4} /> : filteredMonths.length === 0 ? (
-                  <tr><td colSpan={4} className="py-8 text-center text-muted-light">No matching months</td></tr>
+                {refetching ? <TableBodySkeleton rows={6} cols={6} /> : filteredMonths.length === 0 ? (
+                  <tr><td colSpan={6} className="py-8 text-center text-muted-light">No matching months</td></tr>
                 ) : [...filteredMonths].reverse().map((r) => (
                   <tr key={`${r.year}-${r.month}`}>
                     <Td className="font-medium">{r.label}</Td>
                     <Td>{r.count}</Td>
                     <Td>{r.employeeCount}</Td>
-                    <Td className="font-semibold text-primary-dark">{formatCurrency(r.total)}</Td>
+                    <Td className="font-semibold text-primary-dark">{formatCurrency(r.employeePension)}</Td>
+                    <Td className="font-semibold text-accent-dark">{formatCurrency(r.employerPension)}</Td>
+                    <Td className="font-semibold text-success">{formatCurrency(r.total)}</Td>
                   </tr>
                 ))}
               </DataTableCard>

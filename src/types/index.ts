@@ -841,6 +841,8 @@ export interface PensionByMonth {
   year: number;
   month: number;
   label: string;
+  employeePension: number;
+  employerPension: number;
   total: number;
   count: number;
   employeeCount: number;
@@ -848,6 +850,8 @@ export interface PensionByMonth {
 
 export interface PensionByYear {
   year: number;
+  employeePension: number;
+  employerPension: number;
   total: number;
   count: number;
   employeeCount: number;
@@ -858,6 +862,8 @@ export interface PensionByEmployee {
   employeeCode: string;
   name: string;
   designation: string;
+  employeePension: number;
+  employerPension: number;
   total: number;
   count: number;
 }

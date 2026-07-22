@@ -404,29 +404,82 @@ html.theme-transition::after {
 }
 
 @media print {
-  .no-print { display: none !important; }
+  .no-print,
+  .print\:hidden {
+    display: none !important;
+  }
 
-  body * {
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  /* When printing via clone-to-body helper */
+  body.ems-printing > *:not(#ems-print-root) {
+    display: none !important;
+  }
+
+  #ems-print-root,
+  #ems-print-root * {
+    visibility: visible !important;
+  }
+
+  #ems-print-root {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .ems-print-document {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0.4in !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* Fallback path: print in-place target (if helper is not used) */
+  body:not(.ems-printing) * {
     visibility: hidden;
   }
 
-  #salary-slip-print,
-  #salary-slip-print *,
-  #gp-fund-report-print,
-  #gp-fund-report-print * {
+  body:not(.ems-printing) #salary-slip-print,
+  body:not(.ems-printing) #salary-slip-print *,
+  body:not(.ems-printing) #gp-fund-report-print,
+  body:not(.ems-printing) #gp-fund-report-print * {
     visibility: visible;
   }
 
-  #salary-slip-print,
-  #gp-fund-report-print {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    padding: 0;
-    margin: 0;
-    background: white;
-    color: black;
+  body:not(.ems-printing) #salary-slip-print,
+  body:not(.ems-printing) #gp-fund-report-print {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0.4in !important;
+    margin: 0 !important;
+    background: white !important;
+    color: black !important;
+    z-index: 99999 !important;
+  }
+
+  /* Prevent modal / layout shells from clipping fallback print content */
+  body:not(.ems-printing) .fixed,
+  body:not(.ems-printing) .overflow-hidden,
+  body:not(.ems-printing) .overflow-y-auto,
+  body:not(.ems-printing) .overflow-auto,
+  body:not(.ems-printing) .overflow-x-auto {
+    overflow: visible !important;
+    max-height: none !important;
   }
 }
 

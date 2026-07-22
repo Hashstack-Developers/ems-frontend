@@ -8,6 +8,7 @@ import {
   downloadGpFundReportPdf,
   downloadGpFundReportsZip,
 } from '@/lib/gp-fund-report-downloads';
+import { printElementById } from '@/lib/print-element';
 import { useToast } from '@/contexts/ToastContext';
 import { GpFundReportView } from '@/components/gp-fund/GpFundReportView';
 import { Button } from '@/components/ui/Button';
@@ -241,7 +242,7 @@ export default function GpFundReportsPage() {
   };
 
   const handlePrint = () => {
-    window.print();
+    printElementById('gp-fund-report-print');
   };
 
   const canExport = hasPermission('gpFund.export');
