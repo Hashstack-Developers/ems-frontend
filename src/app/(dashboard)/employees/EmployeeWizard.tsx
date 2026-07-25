@@ -16,7 +16,7 @@ import {
   type StepErrors,
   type WizardStepId,
 } from './employee-form';
-import type { ApiResponse, GpFundAdvance, GpFundScale } from '@/types';
+import type { ApiResponse, BpsScale, GpFundAdvance, GpFundScale } from '@/types';
 
 interface EmployeeWizardProps {
   form: EmployeeFormValues;
@@ -86,6 +86,13 @@ export function EmployeeWizard({
   const [gpFundScaleOptions, setGpFundScaleOptions] = useState<Array<{ value: string; label: string }>>([
     { value: '', label: 'Select scale' },
   ]);
+  const [bpsScaleOptions, setBpsScaleOptions] = useState<Array<{ value: string; label: string }>>([
+    { value: '', label: 'Select BPS' },
+    ...Array.from({ length: 22 }, (_, i) => ({
+      value: `BPS-${i + 1}`,
+      label: `BPS-${i + 1}`,
+    })),
+  ]);
   const [gpFundAdvance, setGpFundAdvance] = useState<GpFundAdvance | null>(null);
   const readOnly = isViewing;
 
@@ -102,25 +109,39 @@ export function EmployeeWizard({
   useEffect(() => {
     let ignore = false;
 
-    const loadGpFundScales = async () => {
+    const loadScales = async () => {
       try {
-        const { data } = await api.get<ApiResponse<GpFundScale[]>>('/gp-fund/scales');
-        if (ignore) return;
-        setGpFundScaleOptions([
-          { value: '', label: 'Select scale' },
-          ...data.data.map((scale) => ({
-            value: scale.code,
-            label: scale.code,
-          })),
+        const [gpRes, bpsRes] = await Promise.all([
+          api.get<ApiResponse<GpFundScale[]>>('/gp-fund/scales').catch(() => null),
+          api.get<ApiResponse<BpsScale[]>>('/increments/scales').catch(() => null),
         ]);
-      } catch {
-        if (!ignore) {
-          setGpFundScaleOptions([{ value: '', label: 'Select scale' }]);
+        if (ignore) return;
+
+        if (gpRes?.data?.data) {
+          setGpFundScaleOptions([
+            { value: '', label: 'Select scale' },
+            ...gpRes.data.data.map((scale) => ({
+              value: scale.code,
+              label: scale.code,
+            })),
+          ]);
         }
+
+        if (bpsRes?.data?.data?.length) {
+          setBpsScaleOptions([
+            { value: '', label: 'Select BPS' },
+            ...bpsRes.data.data.map((scale) => ({
+              value: scale.code,
+              label: scale.code,
+            })),
+          ]);
+        }
+      } catch {
+        // Keep hardcoded BPS-1…22 and empty GP options
       }
     };
 
-    loadGpFundScales();
+    loadScales();
     return () => {
       ignore = true;
     };
@@ -286,7 +307,13 @@ export function EmployeeWizard({
       {currentStep === 2 && (
         <FormGrid>
           <Input label="Designation" {...text('designation')} required={!readOnly} />
-          <Input label="Basic Pay Scale" {...text('basicPayScale')} />
+          <Select
+            label="Basic Pay Scale"
+            value={form.basicPayScale}
+            onChange={(e) => onUpdate({ basicPayScale: e.target.value })}
+            disabled={readOnly}
+            options={bpsScaleOptions}
+          />
           <DateInput label="Date Of Joining" {...text('dateOfJoining')} required={!readOnly} />
           <Select
             label="Employment Type (Contract / Regular)"
@@ -322,8 +349,14 @@ export function EmployeeWizard({
 
       {currentStep === 3 && (
         <FormGrid>
-          <Input label="Basic Pay 01-12-2025" {...num('basicPayDec2025')} />
-          <Input label="Basic Pay 01-07-2026" {...num('basicPayJul2026')} />
+          <Input
+            label="Basic Pay (Previous Year) 01-12-2025"
+            {...num('basicPayDec2025')}
+          />
+          <Input
+            label="Basic Pay (Current Year) 01-07-2026"
+            {...num('basicPayJul2026')}
+          />
           <Input label="Personal Allowance" {...num('personalAllowance')} />
           <Input label="H.R" {...num('hr')} />
           <Input label="C.A" {...num('ca')} />

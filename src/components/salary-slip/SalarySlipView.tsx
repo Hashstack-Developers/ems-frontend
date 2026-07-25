@@ -30,9 +30,9 @@ function RecoveryTable({ section }: { section: SalarySlipRecoverySection }) {
           </th>
         </tr>
         <tr>
-          <th className="wcla-slip-th">Payable</th>
-          <th className="wcla-slip-th">Recovered till</th>
-          <th className="wcla-slip-th">Recoverable</th>
+          <th className="wcla-slip-th">{section.payableLabel ?? 'Payable'}</th>
+          <th className="wcla-slip-th">{section.recoveredTillLabel ?? 'Recovered till'}</th>
+          <th className="wcla-slip-th">{section.recoverableLabel ?? 'Recoverable'}</th>
         </tr>
       </thead>
       <tbody>
@@ -113,7 +113,7 @@ export function SalarySlipView({ slip }: SalarySlipViewProps) {
         </tbody>
       </table>
 
-      {slip.loanRecovery && <RecoveryTable section={slip.loanRecovery} />}
+      <RecoveryTable section={slip.loanRecovery} />
       {slip.taxRecovery && <RecoveryTable section={slip.taxRecovery} />}
 
       <table className="wcla-slip-table mt-3 w-full border-collapse text-sm">

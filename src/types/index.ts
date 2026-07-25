@@ -256,6 +256,9 @@ export interface SalarySlipRecoverySection {
   payable: number;
   recoveredTill: number;
   recoverable: number;
+  payableLabel?: string;
+  recoveredTillLabel?: string;
+  recoverableLabel?: string;
 }
 
 export interface SalarySlip {
@@ -291,7 +294,7 @@ export interface SalarySlip {
   employeeInfoFields: SalarySlipInfoField[];
   allowances: SalarySlipLineItem[];
   deductions: SalarySlipLineItem[];
-  loanRecovery: SalarySlipRecoverySection | null;
+  loanRecovery: SalarySlipRecoverySection;
   taxRecovery: SalarySlipRecoverySection | null;
   earnings: { basicSalary: number; grossSalary: number; salaryDays?: number | null };
   rawDeductions: Array<{
@@ -892,4 +895,98 @@ export interface PensionDashboardSummary {
   activeEnrollments: number;
   enrolledEmployees: number;
   byMonth: PensionByMonth[];
+}
+
+// ── Increments / BPS ──────────────────────────────────────────────────────────
+
+export interface BpsScale {
+  id: number;
+  level: number;
+  code: string;
+  minSalary: number;
+  maxSalary: number;
+  incrementAmount: number;
+  maxYears: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IncrementsOverviewEmployee {
+  employeeId: number;
+  employeeCode: string;
+  fullName: string;
+  designation: string;
+  bpsCode: string;
+  basicPay: number;
+  minSalary: number;
+  maxSalary: number;
+  incrementAmount: number;
+  yearsApplied: number;
+  maxYears: number;
+  yearsRemaining: number;
+  eligible: boolean;
+  wouldExceedMax: boolean;
+  nearMax: boolean;
+  nextBasicPay: number | null;
+  reason: string | null;
+}
+
+export interface IncrementsOverviewScaleRow {
+  code: string;
+  level: number;
+  minSalary: number;
+  maxSalary: number;
+  incrementAmount: number;
+  maxYears: number;
+  employeeCount: number;
+  eligibleCount: number;
+  nearMaxCount: number;
+}
+
+export interface IncrementsOverviewSummary {
+  totalScales: number;
+  employeesWithBps: number;
+  eligibleForIncrement: number;
+  nearOrAtMax: number;
+  totalIncrementsApplied: number;
+}
+
+export interface IncrementsRecentRecord {
+  id: number;
+  employeeId: number;
+  year: number;
+  bpsCode: string;
+  basicPayBefore: number;
+  incrementAmount: number;
+  basicPayAfter: number;
+  exceededMax: boolean;
+  alertEmailSent: boolean;
+  createdAt: string;
+}
+
+export interface IncrementsOverviewData {
+  summary: IncrementsOverviewSummary;
+  byScale: IncrementsOverviewScaleRow[];
+  employees: IncrementsOverviewEmployee[];
+  recentRecords: IncrementsRecentRecord[];
+}
+
+export interface ApplyIncrementsResult {
+  year: number;
+  appliedCount: number;
+  skippedCount: number;
+  alertCount: number;
+  applied: Array<{
+    recordId: number;
+    employeeId: number;
+    employeeCode: string;
+    bpsCode: string;
+    basicPayBefore: number;
+    incrementAmount: number;
+    basicPayAfter: number;
+    exceededMax: boolean;
+    alertEmailSent: boolean;
+  }>;
+  skipped: Array<{ employeeId: number; employeeCode: string; reason: string }>;
+  alerts: Array<{ employeeId: number; employeeCode: string }>;
 }

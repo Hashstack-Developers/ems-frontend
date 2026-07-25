@@ -50,6 +50,10 @@ export function getPageKeyFromPath(pathname: string): string | null {
     return 'pension' in pagesConfig ? 'pension' : null;
   }
 
+  if (pathname.startsWith('/increments')) {
+    return 'increments' in pagesConfig ? 'increments' : null;
+  }
+
   if (pathname.startsWith('/settings/users')) {
     return 'users' in pagesConfig ? 'users' : null;
   }
