@@ -46,6 +46,7 @@ export default function PayrollsPage() {
   const [holdsFetching, setHoldsFetching] = useState(false);
   const [togglingHoldId, setTogglingHoldId] = useState<number | null>(null);
   const [holdsSearch, setHoldsSearch] = useState('');
+  const [sendEmails, setSendEmails] = useState(false);
 
   const fetchPayrolls = useCallback(async (options?: { refetch?: boolean }) => {
     const isRefetch = options?.refetch ?? false;
@@ -83,7 +84,7 @@ export default function PayrollsPage() {
     try {
       const { data } = await api.post<ApiResponse<PayrollGenerationResult>>(
         '/payrolls/generate',
-        { month, year },
+        { month, year, sendEmails },
       );
       console.log('[Payroll] Generation result:', data);
       showGenerationToast(data.data, data.message);
@@ -102,7 +103,7 @@ export default function PayrollsPage() {
     try {
       const { data } = await api.post<ApiResponse<PayrollGenerationResult>>(
         '/payrolls/generate',
-        { month, year, employeeId: item.employeeId },
+        { month, year, employeeId: item.employeeId, sendEmails },
       );
       showGenerationToast(data.data, data.message);
       fetchPayrolls({ refetch: true });
@@ -213,6 +214,36 @@ export default function PayrollsPage() {
             )}
             {hasPermission('payrolls.generate') && (
               <>
+                <div className="pb-1">
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted">
+                    Email slips
+                  </p>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSendEmails((prev) => !prev)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 ${
+                        sendEmails ? 'bg-primary' : 'bg-neutral-300'
+                      }`}
+                      aria-pressed={sendEmails}
+                      aria-label={sendEmails ? 'Disable salary slip emails' : 'Enable salary slip emails'}
+                      title={
+                        sendEmails
+                          ? 'Emails ON — salary slips will be emailed on generate'
+                          : 'Emails OFF — generate payroll without sending emails'
+                      }
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                          sendEmails ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                    <span className={`text-sm font-medium ${sendEmails ? 'text-primary-dark' : 'text-muted'}`}>
+                      {sendEmails ? 'On' : 'Off'}
+                    </span>
+                  </div>
+                </div>
                 <Button variant="secondary" onClick={openHoldsModal}>
                   Payroll Holds{heldCount > 0 ? ` (${heldCount})` : ''}
                 </Button>
