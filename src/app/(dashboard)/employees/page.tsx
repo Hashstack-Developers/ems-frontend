@@ -209,11 +209,16 @@ export default function EmployeesPage() {
     });
   }, [employees, search, statusFilter, employmentTypeFilter, designationFilter, disabilityFilter]);
 
+  const employeeLabel = editing?.name?.trim() || form.name?.trim() || '';
   const modalTitle =
     modalMode === 'view'
-      ? 'View Employee'
+      ? employeeLabel
+        ? `View Employee — ${employeeLabel}`
+        : 'View Employee'
       : modalMode === 'edit'
-        ? 'Edit Employee'
+        ? employeeLabel
+          ? `Edit Employee — ${employeeLabel}`
+          : 'Edit Employee'
         : 'Add Employee';
 
   return (

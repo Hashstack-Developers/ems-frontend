@@ -240,6 +240,19 @@ export function EmployeeWizard({
       onKeyDown={handleFormKeyDown}
       className="flex min-h-0 flex-1 flex-col"
     >
+      {(isEditing || isViewing) && (form.name.trim() || employeeCode) && (
+        <div className="mb-3 shrink-0 rounded-xl border border-primary-soft/50 bg-primary-soft/25 px-3 py-2.5 sm:px-4">
+          <p className="text-sm font-semibold text-foreground sm:text-base">
+            {form.name.trim() || 'Unnamed employee'}
+          </p>
+          <p className="mt-0.5 text-xs text-muted">
+            {[employeeCode, form.designation.trim(), form.basicPayScale.trim()]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
+        </div>
+      )}
+
       <StepIndicator currentStep={currentStep} />
 
       <div className="min-h-0 flex-1 overflow-y-auto pr-1">
@@ -471,8 +484,24 @@ export function EmployeeWizard({
 
       {currentStep === 6 && (
         <FormGrid>
-          <Input label="Gross Salary" {...num('grossSalary')} required={!readOnly} />
-          <Input label="Gross Salary with Taxes" {...num('grossSalaryWithTaxes')} required={!readOnly} />
+          <Input
+            label="Gross Salary"
+            value={form.grossSalary}
+            readOnly
+            disabled
+            required={!readOnly}
+          />
+          <Input
+            label="Gross Salary with Taxes"
+            value={form.grossSalaryWithTaxes}
+            readOnly
+            disabled
+            required={!readOnly}
+          />
+          <p className="col-span-full text-xs text-muted">
+            Auto-calculated like the salary slip (basic pay + allowances + arrears). Both fields
+            use the same total — this is also the tax base.
+          </p>
         </FormGrid>
       )}
       </div>

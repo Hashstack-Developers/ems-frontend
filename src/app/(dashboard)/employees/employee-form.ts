@@ -257,6 +257,43 @@ function computeIncrement(basicPayDec2025: string, basicPayJul2026: string): str
   return (jul - dec).toFixed(2);
 }
 
+function parseMoney(value: string): number {
+  if (!value.trim()) return 0;
+  const parsed = parseFloat(value);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+/** Same components as salary-slip Pay & Allowances (excl. payroll-only welfare/management/pension). */
+export function computeGrossSalaryLikeSlip(form: EmployeeFormValues): number {
+  const basicPay =
+    parseMoney(form.basicPayJul2026) > 0
+      ? parseMoney(form.basicPayJul2026)
+      : parseMoney(form.basicPayDec2025);
+
+  return (
+    basicPay +
+    parseMoney(form.hr) +
+    parseMoney(form.ca) +
+    parseMoney(form.ma) +
+    parseMoney(form.adHocAllowance2022) +
+    parseMoney(form.adHocAllowance2023) +
+    parseMoney(form.adHocAllowance2024) +
+    parseMoney(form.adHocAllowance2025) +
+    parseMoney(form.adHocAllowance2026) +
+    parseMoney(form.socialSecurityBenefit) +
+    parseMoney(form.specialPay) +
+    parseMoney(form.personalAllowance) +
+    parseMoney(form.mphilSpecialAllowance) +
+    parseMoney(form.personalPay) +
+    parseMoney(form.overtimeAllowance) +
+    parseMoney(form.integratedAllowance) +
+    parseMoney(form.wa) +
+    parseMoney(form.computerAllowance) +
+    parseMoney(form.specialAllowance) +
+    parseMoney(form.arrears)
+  );
+}
+
 export function applyDerivedFields(form: EmployeeFormValues): EmployeeFormValues {
   const dateOfRetirement = form.dateOfBirth
     ? computeRetirementDate(form.dateOfBirth)
@@ -270,11 +307,17 @@ export function applyDerivedFields(form: EmployeeFormValues): EmployeeFormValues
     ? computeIncrement(form.basicPayDec2025, form.basicPayJul2026)
     : form.increment;
 
+  const gross = computeGrossSalaryLikeSlip(form);
+  const grossDisplay = gross > 0 ? gross.toFixed(2) : '';
+
   return {
     ...form,
     dateOfRetirement,
     lengthOfService,
     increment,
+    // Same value as salary-slip Pay & Allowances total; also used as tax base.
+    grossSalary: grossDisplay,
+    grossSalaryWithTaxes: grossDisplay,
   };
 }
 
